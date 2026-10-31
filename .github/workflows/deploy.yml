@@ -1,5 +1,5 @@
 # Publica Entreno en Cloudflare cada vez que cambia la rama main.
-# Necesita dos "secrets" del repositorio: CLOUDFLARE_API_TOKEN y CLOUDFLARE_ACCOUNT_ID.
+# Necesita el secret CLOUDFLARE_API_TOKEN (CLOUDFLARE_ACCOUNT_ID es opcional: si falta, Wrangler intenta detectarlo).
 # Mientras no existan, no hace nada (no falla).
 name: Publicar en Cloudflare
 on:
