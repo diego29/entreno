@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<script>(function(){var e=new URLSearchParams(location.search).get("ej");if(e&&e!=="elevacion-frontal-polea")location.replace("visor-ejercicios.html"+location.search)})()</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Técnica 3D · Reps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Figtree:wght@400;600&display=swap">
+<style>
+/* Visor 3D de ejercicios. Fondo oscuro siempre para que el modelo blanco y el músculo rojo contrasten. En modo compacto (?compact=1) va dentro de un iframe. El personaje llega en ?modelo=hombre|mujer (lo define el entrenador por cliente). */
+:root{--mat:#15181E;--stage:#1A1D24;--ink:#ECEEF2;--muted:#9AA1AE;--line:#2E333C;--accent:#F0533F;--chip:#21252D;
+  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;--body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--mat);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.page{min-height:100%;display:flex;flex-direction:column;gap:12px;padding:max(12px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-width:760px;margin:0 auto}
+h1{font-family:var(--display);font-weight:800;font-size:32px;text-transform:uppercase;line-height:.95;margin:4px 0 0;text-wrap:balance}
+.stage{position:relative;flex:1;min-height:360px;background:var(--stage);border-radius:14px;overflow:hidden;touch-action:pan-y;cursor:grab}
+.stage canvas{display:block;width:100%;height:100%}
+.status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:16px}
+.over{position:absolute;right:8px;top:8px;display:flex;gap:6px}
+button,select{font:600 13px var(--body);color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:9px;padding:6px 10px;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon{width:32px;padding:6px 0;display:grid;place-items:center}
+.icon svg{width:16px;height:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.height{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:14px;color:var(--muted)}
+.height input{flex:1;min-width:150px;accent-color:var(--accent)}
+.height output{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+/* Compacto: solo el escenario, ocupa todo el iframe */
+.compact .page{padding:0;gap:0;max-width:none;height:100%}
+.compact .stage{border-radius:0;min-height:0;background:var(--mat)}
+.compact .full{display:none!important}
+.compact .over{right:6px;top:6px}
+</style></head><body>
+<div class="page">
+  <h1 class="full" id="title">Técnica 3D</h1>
+  <div class="stage" id="stage">
+    <div class="status" id="status">Cargando…</div>
+    <div class="over">
+      <button type="button" class="icon" id="play" aria-label="Pausar"></button>
+    </div>
+  </div>
+  <div class="controls full">
+    <button id="view" type="button">Cambiar vista</button>
+    <select id="speed" aria-label="Velocidad"><option value="0.5">Lento 0.5×</option><option value="1" selected>Normal 1×</option></select>
+    <button id="reset-h" type="button">Polea a la mano</button>
+  </div>
+  <div class="height full">
+    <label for="pulh">Altura de la polea</label>
+    <input type="range" id="pulh" min="0" max="30" step="1" value="13">
+    <output id="pulh-out" for="pulh">—</output>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/curves/NURBSUtils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/curves/NURBSCurve.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script>
+(function(){
+/* Catálogo de animaciones. Para agregar más ejercicios se suma una entrada aquí y en ANIMS de Tempo y Reps. */
+const EJ={
+  "elevacion-frontal-polea":{nombre:"Elevación frontal en polea con grillete"}
+};
+const Q=new URLSearchParams(location.search);
+const EJID=Q.get("ej")||"elevacion-frontal-polea",COMPACT=Q.get("compact")==="1";
+if(COMPACT)document.documentElement.classList.add("compact");
+const stage=document.getElementById('stage'),statusEl=document.getElementById('status');
+const playBtn=document.getElementById('play'),viewBtn=document.getElementById('view'),speedSel=document.getElementById('speed');
+const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>';
+function fail(msg){statusEl.hidden=false;statusEl.textContent=msg}
+const ej=EJ[EJID];
+if(!ej){fail('Esta animación no existe.');return}
+document.getElementById('title').textContent=ej.nombre;document.title=ej.nombre+' · Reps';
+if(!window.THREE||!THREE.FBXLoader){fail('Necesitas internet la primera vez para cargar la animación.');return}
+const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(30,1,0.05,50);
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(stage);resize();
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x5a5f68,0.75));
+const key=new THREE.DirectionalLight(0xffffff,0.95);key.position.set(-2.5,4,3);key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);Object.assign(key.shadow.camera,{left:-2,right:2,top:2.6,bottom:-1,near:.5,far:12});key.shadow.bias=-0.0004;key.shadow.normalBias=0.02;
+scene.add(key);
+const rim=new THREE.DirectionalLight(0xffffff,0.7);rim.position.set(2.5,2.5,-3);scene.add(rim);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(1.7,64),new THREE.MeshStandardMaterial({color:0x2B3039,roughness:1}));
+ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+
+const metal=new THREE.MeshStandardMaterial({color:0xb7bbc1,roughness:.35,metalness:.6});
+const plateM=new THREE.MeshStandardMaterial({color:0x2a2b2d,roughness:.5,metalness:.3});
+const dark=new THREE.MeshStandardMaterial({color:0x1c1c1c,roughness:.75});
+function add(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const MX=-0.17,MZ=-0.85;
+add(B(.82,.05,.42),metal,MX,.025,MZ);
+[-.32,.32].forEach(dx=>add(B(.06,2.25,.06),metal,MX+dx,1.15,MZ));
+add(B(.7,.07,.07),metal,MX,2.27,MZ);
+[-.08,.08].forEach(dx=>add(new THREE.CylinderGeometry(.008,.008,1.95,8),metal,MX+dx,1.05,MZ));
+for(let i=0;i<14;i++)add(B(.26,.036,.13),plateM,MX,.09+i*.042,MZ);
+add(B(.04,.6,.02),metal,MX,.95,MZ+.07);
+const tp=add(new THREE.TorusGeometry(.045,.012,12,32),metal,MX,2.18,MZ+.06);tp.rotation.y=Math.PI/2;
+const RZ=MZ+.15,HOLE=.06,HMIN=.2,NH=31;
+add(B(.07,2.1,.06),metal,MX,1.1,RZ);
+const holeG=new THREE.CylinderGeometry(.009,.009,.012,12);
+for(let i=0;i<NH;i++){const h=add(holeG,dark,MX,HMIN+i*HOLE,RZ+.031);h.rotation.x=Math.PI/2;h.castShadow=false}
+const topP=add(new THREE.TorusGeometry(.035,.01,12,28),metal,MX,2.18,RZ+.05);topP.rotation.y=Math.PI/2;
+const pinM=new THREE.MeshStandardMaterial({color:0xd63a2b,roughness:.45});
+const carriage=new THREE.Group();scene.add(carriage);
+function cadd(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;carriage.add(m);return m}
+cadd(B(.11,.17,.1),plateM,0,0,0);
+cadd(B(.116,.025,.106),metal,0,.072,0);cadd(B(.116,.025,.106),metal,0,-.072,0);
+const pin=cadd(new THREE.CylinderGeometry(.006,.006,.07,10),metal,.085,.0,0);pin.rotation.z=Math.PI/2;
+cadd(new THREE.SphereGeometry(.017,16,12),pinM,.122,0,0);
+cadd(B(.035,.05,.05),metal,0,0,.07);
+const axle=cadd(new THREE.CylinderGeometry(.012,.012,.05,16),metal,0,0,.11);axle.rotation.z=Math.PI/2;
+const wheel=cadd(new THREE.TorusGeometry(.036,.011,12,28),dark,0,0,.11);wheel.rotation.y=Math.PI/2;
+carriage.position.set(MX,1,RZ);
+const PUL=new THREE.Vector3(MX,1,RZ+.15);
+const hSlider=document.getElementById('pulh'),hOut=document.getElementById('pulh-out');
+function setPulley(i){i=Math.max(0,Math.min(NH-1,i));const h=HMIN+i*HOLE;carriage.position.y=h;PUL.set(MX,h,RZ+.15);
+  hSlider.value=i;hOut.textContent=Math.round(h*100)+' cm · hoyo '+(i+1)}
+hSlider.max=NH-1;hSlider.oninput=()=>setPulley(parseInt(hSlider.value,10));
+
+const cuff=add(new THREE.CylinderGeometry(.043,.043,.06,32,1,true),new THREE.MeshStandardMaterial({color:0x1e1e1e,roughness:.8,side:THREE.DoubleSide}),0,0,0);
+const ringM=add(new THREE.TorusGeometry(.018,.004,10,24),metal,0,0,0);
+const cable=add(new THREE.CylinderGeometry(.0045,.0045,1,8),dark,0,0,0);
+
+let root=null,armR,armL,restR,restL,parentInvR,parentInvL,foreR,handR,colorAttr,weights=[],baseCol=[.82,.82,.81],hot;
+const UP=new THREE.Vector3(0,1,0),X=new THREE.Vector3(1,0,0),Z=new THREE.Vector3(0,0,1);
+function boneOf(obj,n){let f=null;obj.traverse(o=>{if(!f&&o.isBone&&o.name.replace(/^mixamorig:?/,'')===n)f=o});return f}
+
+function setup(obj,height){
+  weights=[];colorAttr=null;
+  root=obj;scene.add(root);
+  const meshes=[];
+  root.traverse(o=>{if(o.isSkinnedMesh||o.isMesh){meshes.push(o);o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}});
+  root.updateMatrixWorld(true);
+  const box=new THREE.Box3();meshes.forEach(m=>box.expandByObject(m));
+  root.scale.multiplyScalar(height/(box.max.y-box.min.y));root.updateMatrixWorld(true);
+  const box2=new THREE.Box3();meshes.forEach(m=>box2.expandByObject(m));
+  root.position.y-=box2.min.y;root.position.x-=(box2.min.x+box2.max.x)/2;root.position.z-=(box2.min.z+box2.max.z)/2;
+  root.updateMatrixWorld(true);
+  armR=boneOf(root,'RightArm');armL=boneOf(root,'LeftArm');foreR=boneOf(root,'RightForeArm');handR=boneOf(root,'RightHand');
+  if(!armR||!armL||!foreR||!handR)throw new Error('bones');
+  const J=armR.getWorldPosition(new THREE.Vector3());
+  meshes.forEach(m=>{
+    const joints=/joint/i.test(m.name);
+    m.material=new THREE.MeshStandardMaterial({color:joints?0x8f9094:0xffffff,roughness:joints?.4:.55,metalness:joints?.25:0,skinning:!!m.isSkinnedMesh,vertexColors:!joints});
+    if(joints||!m.isSkinnedMesh)return;
+    m.skeleton.update();
+    const pos=m.geometry.attributes.position,n=pos.count,col=new Float32Array(n*3),v=new THREE.Vector3();
+    const cD=J.clone().add(new THREE.Vector3(-0.05,0.0,0.035)),rD=new THREE.Vector3(.115,.095,.085);
+    const cP=J.clone().add(new THREE.Vector3(0.085,-0.07,0.05)),rP=new THREE.Vector3(.085,.06,.07);
+    for(let i=0;i<n;i++){
+      v.fromBufferAttribute(pos,i);m.boneTransform(i,v);v.applyMatrix4(m.matrixWorld);
+      let w=0;
+      if(v.z>J.z-0.005){
+        const dx=(v.x-cD.x)/rD.x,dy=(v.y-cD.y)/rD.y,dz=(v.z-cD.z)/rD.z,e=Math.sqrt(dx*dx+dy*dy+dz*dz);
+        if(e<1)w=Math.max(w,1-Math.pow(e,5));
+        const px=(v.x-cP.x)/rP.x,py=(v.y-cP.y)/rP.y,pz=(v.z-cP.z)/rP.z,ep=Math.sqrt(px*px+py*py+pz*pz);
+        if(ep<1)w=Math.max(w,0.45*(1-Math.pow(ep,4)));
+      }
+      col[i*3]=baseCol[0];col[i*3+1]=baseCol[1];col[i*3+2]=baseCol[2];
+      if(w>0)weights.push(i,w);
+    }
+    colorAttr=new THREE.BufferAttribute(col,3);m.geometry.setAttribute('color',colorAttr);
+  });
+  restR=armR.getWorldQuaternion(new THREE.Quaternion());restL=armL.getWorldQuaternion(new THREE.Quaternion());
+  parentInvR=armR.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+  parentInvL=armL.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+  const lower=THREE.MathUtils.degToRad(80);
+  hot={dR:new THREE.Quaternion().setFromAxisAngle(Z,lower),dL:new THREE.Quaternion().setFromAxisAngle(Z,-lower)};
+  armL.quaternion.copy(parentInvL).multiply(new THREE.Quaternion().copy(hot.dL).multiply(restL));
+  pose(0);
+  return {root,armR,armL,foreR,handR,restR,parentInvR,colorAttr,weights,hot,handIdx:Math.round((cc.y-HMIN)/HOLE)};
+}
+
+const red=[.75,.015,.008];
+const tmpQ=new THREE.Quaternion(),rx=new THREE.Quaternion(),wpH=new THREE.Vector3(),wpF=new THREE.Vector3(),dir=new THREE.Vector3(),cc=new THREE.Vector3(),toP=new THREE.Vector3(),rp=new THREE.Vector3(),cd=new THREE.Vector3();
+const MAX=88,T_UP=1500,T_HOLD=500,T_DOWN=2500,T_REST=600,T=T_UP+T_HOLD+T_DOWN+T_REST;
+function pose(a){
+  rx.setFromAxisAngle(X,-THREE.MathUtils.degToRad(a));
+  tmpQ.copy(rx).multiply(hot.dR).multiply(restR);
+  armR.quaternion.copy(parentInvR).multiply(tmpQ);
+  root.updateMatrixWorld(true);
+  handR.getWorldPosition(wpH);foreR.getWorldPosition(wpF);
+  dir.subVectors(wpH,wpF).normalize();
+  cc.copy(wpH).addScaledVector(dir,-0.035);
+  cuff.position.copy(cc);cuff.quaternion.setFromUnitVectors(UP,dir);
+  toP.subVectors(PUL,cc);toP.addScaledVector(dir,-toP.dot(dir)).normalize();
+  rp.copy(cc).addScaledVector(toP,0.058);
+  ringM.position.copy(rp);ringM.quaternion.setFromUnitVectors(Z,dir);
+  cd.subVectors(rp,PUL);const L=cd.length();
+  cable.position.copy(PUL).addScaledVector(cd,.5);cable.scale.set(1,L,1);cable.quaternion.setFromUnitVectors(UP,cd.normalize());
+  if(colorAttr){
+    const k=0.7+0.3*(a/MAX),arr=colorAttr.array;
+    for(let j=0;j<weights.length;j+=2){const i=weights[j],w=weights[j+1]*k;
+      arr[i*3]=baseCol[0]+(red[0]-baseCol[0])*w;arr[i*3+1]=baseCol[1]+(red[1]-baseCol[1])*w;arr[i*3+2]=baseCol[2]+(red[2]-baseCol[2])*w}
+    colorAttr.needsUpdate=true;
+  }
+}
+
+/* Personajes: se descargan solo cuando se eligen; el service worker de la app los guarda para usarlos sin internet */
+const HEIGHT={hombre:1.78,mujer:1.66},models={},loading={};
+let handIdx=0,current=null;
+function loadModel(k){
+  if(models[k])return Promise.resolve(models[k]);
+  if(!loading[k])loading[k]=fetch('modelos/'+k+'.fbx').then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer()}).then(buf=>{
+    const prev=root,prevState=current&&models[current];
+    const m=setup(new THREE.FBXLoader().parse(buf,''),HEIGHT[k]);scene.remove(m.root);models[k]=m;
+    if(prevState)apply(prevState);else root=prev;
+    return m});
+  return loading[k];
+}
+function apply(m){({root,armR,armL,foreR,handR,restR,parentInvR,colorAttr,weights,hot}=m)}
+async function use(k){
+  if(!root)statusEl.hidden=false;
+  try{
+    const m=await loadModel(k);
+    if(root)scene.remove(root);
+    apply(m);scene.add(root);handIdx=m.handIdx;setPulley(handIdx);current=k;
+    statusEl.hidden=true;
+  }catch(err){console.error(err);if(!current)fail('No se pudo cargar el personaje. Revisa tu conexión.')}
+}
+document.getElementById('reset-h').onclick=()=>setPulley(handIdx);
+
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+let t=reduce?T_UP:0,last=null,run=!reduce,speed=1;
+function setPlayIcon(){playBtn.innerHTML=run?ICON_PAUSE:ICON_PLAY;playBtn.setAttribute('aria-label',run?'Pausar':'Reproducir')}
+setPlayIcon();
+function angle(){
+  if(t<T_UP)return MAX*ease(t/T_UP);
+  if(t<T_UP+T_HOLD)return MAX;
+  if(t<T_UP+T_HOLD+T_DOWN)return MAX*(1-ease((t-T_UP-T_HOLD)/T_DOWN));
+  return 0;
+}
+const target=new THREE.Vector3(-0.12,1.0,-0.25);
+const views=[-1.25,-0.6,0.55,-2.4];let vi=0,yaw=views[0],pitch=0.12,dist=COMPACT?4.3:4.7,yawGoal=yaw;
+function placeCam(){yaw+=(yawGoal-yaw)*0.12;
+  cam.position.set(target.x+dist*Math.sin(yaw)*Math.cos(pitch),target.y+dist*Math.sin(pitch),target.z+dist*Math.cos(yaw)*Math.cos(pitch));cam.lookAt(target)}
+let drag=false,px=0,py=0;
+stage.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag=true;px=e.clientX;py=e.clientY;stage.style.cursor='grabbing'});
+window.addEventListener('pointerup',()=>{drag=false;stage.style.cursor='grab'});
+window.addEventListener('pointermove',e=>{if(!drag)return;yawGoal-=(e.clientX-px)*.01;pitch=Math.max(-.05,Math.min(.8,pitch+(e.clientY-py)*.005));px=e.clientX;py=e.clientY});
+viewBtn.onclick=()=>{vi=(vi+1)%views.length;let g=views[vi];while(g-yaw>Math.PI)g-=2*Math.PI;while(yaw-g>Math.PI)g+=2*Math.PI;yawGoal=g;pitch=.12};
+playBtn.onclick=()=>{run=!run;setPlayIcon()};
+speedSel.onchange=()=>{speed=parseFloat(speedSel.value)||1};
+
+/* Ahorra batería: no dibuja si la pestaña o el iframe no se ven */
+let visible=true;
+new IntersectionObserver(es=>{visible=es[0].isIntersecting}).observe(stage);
+function loop(ts){
+  requestAnimationFrame(loop);
+  if(last===null)last=ts;const dt=ts-last;last=ts;
+  if(document.hidden||!visible)return;
+  if(run)t=(t+dt*speed)%T;
+  if(root&&current)pose(angle());
+  placeCam();renderer.render(scene,cam);
+}
+requestAnimationFrame(loop);
+
+const start=Q.get('modelo');
+use(HEIGHT[start]?start:'hombre');
+})();
+</script>
+</body></html>
