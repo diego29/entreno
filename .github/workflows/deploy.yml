@@ -1,0 +1,26 @@
+# Publica Entreno en Cloudflare cada vez que cambia la rama main.
+# Necesita dos "secrets" del repositorio: CLOUDFLARE_API_TOKEN y CLOUDFLARE_ACCOUNT_ID.
+# Mientras no existan, no hace nada (no falla).
+name: Publicar en Cloudflare
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.CF_TOKEN != ''
+      - name: Publicar con Wrangler
+        if: env.CF_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+      - name: Aviso
+        if: env.CF_TOKEN == ''
+        run: echo "Falta el secret CLOUDFLARE_API_TOKEN; no se publicó nada."
