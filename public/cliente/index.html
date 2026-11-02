@@ -79,6 +79,21 @@
 .go,.btn,.tile,.list-item,.excard,.pchips button,.feel button{transition:transform .12s ease}
 .go:active,.btn:active,.tile:active,.list-item:active,.excard:active,.pchips button:active,.feel button:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){.rise,.mbar i{animation:none}.go:active,.btn:active,.tile:active,.list-item:active,.excard:active,.pchips button:active,.feel button:active{transform:none}}
+/* v64: pantalla de la serie con el nuevo estilo */
+.exhero{background:var(--accent);color:#fff;border-radius:24px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 30px -16px color-mix(in srgb,var(--accent) 70%,transparent)}
+.exhero .p-set{color:#fff;opacity:.9;font-size:15px;letter-spacing:.1em;display:flex;align-items:center;gap:8px}
+.exhero .p-set::before{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.exhero .p-name{color:#fff;font-size:34px}
+.exhero .goal span{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:999px;padding:5px 11px}
+.exhero .goal span b{color:#fff}
+.sdots{display:flex;gap:6px;align-items:center}.sdots i{width:26px;height:6px;border-radius:999px;background:rgba(255,255,255,.3)}
+.sdots i.done{background:#fff}.sdots i.cur{background:rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.pmedia{border-radius:20px}
+.stepper{border:0;border-radius:20px;padding:12px;box-shadow:0 1px 2px rgba(21,24,30,.06)}
+.stepper .pm button{border:0;border-radius:12px;background:var(--surface2)}
+.feel button{border:0;background:color-mix(in srgb,var(--fc) 14%,var(--surface));border-radius:18px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--fc) 55%,transparent)}
+.last{background:var(--surface);border-radius:14px;padding:8px 12px}
+.ssbar{border:0;border-radius:16px}
 </style>
 <title>Reps</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1105,10 +1120,11 @@ function drawUI0(){
   el.innerHTML=`<div class="in">${head(`Ejercicio ${s.ei+1} de ${P.ex.length}`)}
     ${grp.length>1?`<div class="ssbar"><b>Biserie · ronda ${s.si+1}</b><span>${grp.map(i=>esc(P.ex[i].name)).join(" + ")}</span><span class="muted">${grp.indexOf(s.ei)<grp.length-1?"Sin descanso: pasa directo al siguiente":"Al terminar, descansa"}</span></div>`:""}
     ${own||wasSkipped?`<div class="editbar"><span>${own?"✓ Ya registrada · puedes corregirla":"Serie saltada · puedes registrarla"}</span><button class="btn" id="p-cur">Ir a la actual →</button></div>`:""}
-    <div><div class="p-set">Serie ${s.si+1} de ${e.sets}</div><div class="p-name">${esc(e.name)}</div></div>
+    <div class="exhero"><div class="p-set">Serie ${s.si+1} de ${e.sets}</div><div class="p-name">${esc(e.name)}</div>
+    <div class="goal"><span>Meta <b>${esc(tgt)}</b> reps</span>${num(w)||pw||e.weight?`<span><b>${fmtN(num(w)||pw||e.weight)} ${u}${e.equip==="db"?" c/u":""}</b></span>`:""}${e.load?`<span>${LOADNAME[e.load]}</span>`:""}${e.equip&&!(e.equip==="db"&&!e.uni)?`<span>${eqCaption(e)}</span>`:""}</div>
+    <div class="sdots" aria-hidden="true">${Array.from({length:e.sets},(_,i)=>`<i class="${P.res[s.ei][i]?"done":i===s.si?"cur":""}"></i>`).join("")}</div></div>
     ${e.img?`<div class="pmedia">${animOf(e.img)?animFrame(animOf(e.img),e.name):`<img src="${esc(e.img)}" alt="${esc(e.name)}">`}</div>`:""}
     ${P.dl?`<div class="dlbar">↻ Semana de recuperación: 20% menos peso. Que todo se sienta Fácil.</div>`:""}
-    <div class="goal"><span>Meta <b>${esc(tgt)}</b> reps</span>${num(w)||pw||e.weight?`<span><b>${fmtN(num(w)||pw||e.weight)} ${u}${e.equip==="db"?" c/u":""}</b></span>`:""}${e.load?`<span>${LOADNAME[e.load]}</span>`:""}${e.equip&&!(e.equip==="db"&&!e.uni)?`<span>${eqCaption(e)}</span>`:""}</div>
     ${whyHTML}
     ${lastSet?`<div class="last">La vez pasada (${fDate(lt.date)}): <b>${esc(lastSet.reps)} × ${fmtN(lastSet.w)} ${u}</b>${lastSet.feel?`<i class="fd" style="background:${FEEL[lastSet.feel].c}"></i>${FEEL[lastSet.feel].t.toLowerCase()}`:""}</div>`:""}
     ${e.notes?`<div class="card" style="padding:10px 12px;font-size:14px"><b>${esc(ME.trainer)}:</b> ${esc(e.notes)}</div>`:""}

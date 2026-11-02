@@ -66,6 +66,21 @@
 .btn,.list-item,.excard,.thero .hchips button,.feel button,.day{transition:transform .12s ease}
 .btn:active,.list-item:active,.excard:active,.thero .hchips button:active,.feel button:active,.day:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){.rise,.thero .hbar i{animation:none}.btn:active,.list-item:active,.excard:active,.thero .hchips button:active,.feel button:active,.day:active{transform:none}}
+/* v64: pantalla de la serie con el nuevo estilo */
+.exhero{background:var(--accent);color:#fff;border-radius:24px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 30px -16px color-mix(in srgb,var(--accent) 70%,transparent)}
+.exhero .p-set{color:#fff;opacity:.9;font-size:15px;letter-spacing:.1em;display:flex;align-items:center;gap:8px}
+.exhero .p-set::before{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.exhero .p-name{color:#fff;font-size:34px}
+.exhero .goal span{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:999px;padding:5px 11px}
+.exhero .goal span b{color:#fff}
+.sdots{display:flex;gap:6px;align-items:center}.sdots i{width:26px;height:6px;border-radius:999px;background:rgba(255,255,255,.3)}
+.sdots i.done{background:#fff}.sdots i.cur{background:rgba(255,255,255,.7);box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.pmedia{border-radius:20px}
+.stepper{border:0;border-radius:20px;padding:12px;box-shadow:0 1px 2px rgba(21,24,30,.06)}
+.stepper .pm button{border:0;border-radius:12px;background:var(--surface2)}
+.feel button{border:0;background:color-mix(in srgb,var(--fc) 14%,var(--surface));border-radius:18px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--fc) 55%,transparent)}
+.last{background:var(--surface);border-radius:14px;padding:8px 12px}
+.ssbar{border:0;border-radius:16px}
 </style>
 <title>Tempo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1425,7 +1440,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 63</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 64</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
@@ -2462,9 +2477,10 @@ function drawPlayer0(){
   el.innerHTML=`<div class="in">${headHTML(p,`${doneSets(p)}/${totalSets(p)} series`)}
     ${partner}
     ${own||wasSkipped?`<div class="editbar"><span>${own?"✓ Serie ya registrada · puedes corregirla":"Serie saltada · puedes registrarla"}</span><button class="btn" id="go-cur">Ir a la actual →</button></div>`:""}
-    <div><div class="p-set">Serie ${s.si+1} de ${setsOf(e)}</div><div class="p-name">${esc(e.name)}</div></div>
-    ${imgFor(e)?`<div class="pmedia">${playerMedia(e,p.clientId)}</div>`:""}
+    <div class="exhero"><div class="p-set">Serie ${s.si+1} de ${setsOf(e)}</div><div class="p-name">${esc(e.name)}</div>
     <div class="goal">${parseInt(e.tWork,10)>0?`<span>Por tiempo <b>${esc(e.tWork)} s</b> · ${esc(e.tRest||0)} s desc.</span>`:""}<span>Meta <b>${esc(tgt||"–")}</b> reps</span>${pw||e.weight?`<span><b>${esc(pw?fmtN(pw):firstNum(e.weight))} ${u}${e.equip==="db"?" c/u":""}</b></span>`:""}${e.equip&&!(e.equip==="db"&&!e.uni)?`<span>${eqCaption(e)}</span>`:""}${parseInt(e.rest,10)>0&&!(inGroup&&grp.indexOf(s.ei)<grp.length-1)?`<span>${esc(e.rest)} s desc.</span>`:""}</div>
+    <div class="sdots" aria-hidden="true">${Array.from({length:setsOf(e)},(_,i)=>`<i class="${p.results[s.ei][i]?"done":i===s.si?"cur":""}"></i>`).join("")}</div></div>
+    ${imgFor(e)?`<div class="pmedia">${playerMedia(e,p.clientId)}</div>`:""}
     ${p.dl?`<div class="dlbar">↻ Semana de recuperación: 20% menos peso, todo en Fácil.</div>`:""}
     ${upHTML||whyHTML}
     ${e.notes?`<div class="note" style="font-size:14px">${esc(e.notes)}</div>`:""}
