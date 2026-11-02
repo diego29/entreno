@@ -32,6 +32,10 @@
 .player .in.restv{height:100%;min-height:0}
 .nextcard.big .nc-media{min-height:90px;max-height:none}
 .nextcard.big .nc-g{flex:1;display:grid;place-items:center;min-height:0}
+.nc-bigw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border-radius:14px;min-height:110px}
+.nc-bigw b{font-family:var(--display);font-weight:800;font-size:72px;line-height:1}
+.nc-bigw small{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.nc-stats.two{grid-template-columns:1fr 1fr}
 </style>
 <title>Tempo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2306,12 +2310,12 @@ function headHTML(p,label){
 const LOADNM={plates2:"Barra libre",smith:"Smith",hammer:"Máquina tipo Hammer",plates1:"Remo T · un lado"};
 function nextCardHTML(p,s,trans,big){const e=p.exercises[s.ei],u=exUnit(e),cp=curPlanP(p,s.ei,s.si),prev=p.results[s.ei].slice(0,s.si).filter(Boolean).at(-1);
   let w=!cp.first&&cp.w?cp.w:prev?wLb(prev):cp.w||num(firstNum(e.weight));let g="",cap=e.load?LOADNM[e.load]||"Discos":e.equip?eqCaption(e):"";
-  if(trans&&e.load){const bar=NO_BAR(e.load)?0:(p.bars?.[s.ei]??(num(e.bar)||45));const pl=p.plates?.[s.ei]?.length?p.plates[s.ei]:greedyPlates(w,bar,multOf(e));
+  if((trans||big)&&e.load){const bar=NO_BAR(e.load)?0:(p.bars?.[s.ei]??(num(e.bar)||45));const pl=p.plates?.[s.ei]?.length?p.plates[s.ei]:greedyPlates(w,bar,multOf(e));
     g=barSVG({exercises:p.exercises,plates:{[s.ei]:pl},bars:{[s.ei]:bar}},s.ei).replace(/ data-rmplate="\d+"/g,"").replace(/cursor:pointer/g,"")}
-  else if(trans&&e.equip)g=eqSVG(e,w,u);
+  else if((trans||big)&&e.equip)g=eqSVG(e,w,u);
   if(big)return `<div class="card nextcard big"><div><div class="eyebrow">${trans?"Sigue otro ejercicio":"Sigue"}</div><div style="font-weight:800;font-size:20px;line-height:1.2">${esc(e.name)}</div></div>
-    ${g?`<div class="nc-g">${g}</div>`:imgFor(e)?`<div class="nc-media">${thumb(imgFor(e),"",e.name)}</div>`:""}
-    <div class="nc-stats"><div><b>${w?fmtN(w):"—"}</b><small>${u}${e.equip==="db"?" c/u":""}${cap?" · "+esc(cap):""}</small></div><div><b>${esc(cp.range||e.reps||"–")}</b><small>reps meta</small></div><div><b>${s.si+1}/${setsOf(e)}</b><small>serie</small></div></div>
+    ${g?`<div class="nc-g">${g}</div>`:`<div class="nc-bigw"><b>${w?fmtN(w):"—"}</b><small>${u}${e.equip==="db"?" c/u":""}${cap?" · "+esc(cap):""}</small></div>`}
+    <div class="nc-stats${g?"":" two"}">${g?`<div><b>${w?fmtN(w):"—"}</b><small>${u}${e.equip==="db"?" c/u":""}${cap?" · "+esc(cap):""}</small></div>`:""}<div><b>${esc(cp.range||e.reps||"–")}</b><small>reps meta</small></div><div><b>${s.si+1}/${setsOf(e)}</b><small>serie</small></div></div>
     ${cp.why&&!cp.first?`<div class="nc-why">${esc(cp.why)}</div>`:""}${e.notes?`<div class="nc-note">${esc(e.notes)}</div>`:""}</div>`;
   return `<div class="card nextcard"><div class="nc-top">${thumb(imgFor(e),"pthumb",e.name)}<div style="min-width:0"><div class="eyebrow">${trans?"Sigue otro ejercicio":"Sigue"}</div><div style="font-weight:700;font-size:16px">${esc(e.name)}</div>
     <div class="muted" style="font-size:13px">Serie ${s.si+1} de ${setsOf(e)} · meta ${esc(cp.range||e.reps||"–")} reps</div></div>
