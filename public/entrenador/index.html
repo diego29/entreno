@@ -21,6 +21,17 @@
 .nextcard{display:grid;gap:8px}.nextcard .nc-top{display:flex;gap:12px;align-items:center}.nextcard .nc-w{margin-left:auto;text-align:right;font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
 .nextcard .nc-w small{display:block;font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.nextcard .nc-g{background:var(--surface2);border-radius:12px;padding:8px}.nextcard .nc-g svg{width:100%;height:auto;display:block}
 .nextcard .nc-why{font-size:13px;color:var(--muted)}
+.nextcard.big{flex:1;display:flex;flex-direction:column;gap:10px;min-height:0}
+.nextcard.big .nc-media{flex:1;min-height:120px;max-height:44vh;border-radius:14px;background:var(--surface2);overflow:hidden;display:grid;place-items:center}
+.nextcard.big .nc-media img{width:100%;height:100%;object-fit:contain}
+.nc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nc-stats>div{background:var(--surface2);border-radius:12px;padding:8px 6px;text-align:center;min-width:0}
+.nc-stats b{display:block;font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05}
+.nc-stats small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nc-note{font-size:14px;line-height:1.35;background:var(--surface2);border-radius:12px;padding:8px 10px}
+.player .in.restv{height:100%;min-height:0}
+.nextcard.big .nc-media{min-height:90px;max-height:none}
+.nextcard.big .nc-g{flex:1;display:grid;place-items:center;min-height:0}
 </style>
 <title>Tempo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1351,7 +1362,7 @@ function settingsSheet(){const p=S.profile||{};
     <label class="check bigtoggle"><input type="checkbox" id="pf-awake" ${WAKE_ON?"checked":""}> <span><b>Pantalla siempre encendida</b><br><small class="muted">No se apaga mientras la app esté abierta, aunque no la toques. Gasta un poco más de batería.</small></span></label>
     ${notifCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 58</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 59</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
@@ -2293,11 +2304,15 @@ function headHTML(p,label){
 }
 /* v58: en el descanso, lo que sigue: peso a usar y, al cambiar de ejercicio, el dibujo del equipo (barra, Hammer, mancuernas, barra fija) */
 const LOADNM={plates2:"Barra libre",smith:"Smith",hammer:"Máquina tipo Hammer",plates1:"Remo T · un lado"};
-function nextCardHTML(p,s,trans){const e=p.exercises[s.ei],u=exUnit(e),cp=curPlanP(p,s.ei,s.si),prev=p.results[s.ei].slice(0,s.si).filter(Boolean).at(-1);
+function nextCardHTML(p,s,trans,big){const e=p.exercises[s.ei],u=exUnit(e),cp=curPlanP(p,s.ei,s.si),prev=p.results[s.ei].slice(0,s.si).filter(Boolean).at(-1);
   let w=!cp.first&&cp.w?cp.w:prev?wLb(prev):cp.w||num(firstNum(e.weight));let g="",cap=e.load?LOADNM[e.load]||"Discos":e.equip?eqCaption(e):"";
   if(trans&&e.load){const bar=NO_BAR(e.load)?0:(p.bars?.[s.ei]??(num(e.bar)||45));const pl=p.plates?.[s.ei]?.length?p.plates[s.ei]:greedyPlates(w,bar,multOf(e));
     g=barSVG({exercises:p.exercises,plates:{[s.ei]:pl},bars:{[s.ei]:bar}},s.ei).replace(/ data-rmplate="\d+"/g,"").replace(/cursor:pointer/g,"")}
   else if(trans&&e.equip)g=eqSVG(e,w,u);
+  if(big)return `<div class="card nextcard big"><div><div class="eyebrow">${trans?"Sigue otro ejercicio":"Sigue"}</div><div style="font-weight:800;font-size:20px;line-height:1.2">${esc(e.name)}</div></div>
+    ${g?`<div class="nc-g">${g}</div>`:imgFor(e)?`<div class="nc-media">${thumb(imgFor(e),"",e.name)}</div>`:""}
+    <div class="nc-stats"><div><b>${w?fmtN(w):"—"}</b><small>${u}${e.equip==="db"?" c/u":""}${cap?" · "+esc(cap):""}</small></div><div><b>${esc(cp.range||e.reps||"–")}</b><small>reps meta</small></div><div><b>${s.si+1}/${setsOf(e)}</b><small>serie</small></div></div>
+    ${cp.why&&!cp.first?`<div class="nc-why">${esc(cp.why)}</div>`:""}${e.notes?`<div class="nc-note">${esc(e.notes)}</div>`:""}</div>`;
   return `<div class="card nextcard"><div class="nc-top">${thumb(imgFor(e),"pthumb",e.name)}<div style="min-width:0"><div class="eyebrow">${trans?"Sigue otro ejercicio":"Sigue"}</div><div style="font-weight:700;font-size:16px">${esc(e.name)}</div>
     <div class="muted" style="font-size:13px">Serie ${s.si+1} de ${setsOf(e)} · meta ${esc(cp.range||e.reps||"–")} reps</div></div>
     ${w?`<div class="nc-w">${fmtN(w)}<small>${u}${e.equip==="db"?" c/u":""}${cap?" · "+esc(cap):""}</small></div>`:""}</div>
@@ -2346,15 +2361,15 @@ function drawPlayer0(){
     return}
   if(p.phase==="rest"){
     const left=restLeft(p);const n=nextInfo(p);
-    el.innerHTML=`<div class="in">${headHTML(p,"Descanso")}
-      <div class="timer ${n&&restTrans(p,n)?"sm":""}"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="8"/>
+    el.innerHTML=`<div class="in restv">${headHTML(p,"Descanso")}
+      <div class="timer ${n?"sm":""}"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="8"/>
       <circle id="ring" cx="60" cy="60" r="52" fill="none" stroke="${p.lastFeel&&FEEL[p.lastFeel]?FEEL[p.lastFeel].c:"var(--accent)"}" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="${326.7*(1-left/Math.max(1,p.restTotal))}"/></svg>
       <div class="t" id="t-left">${mmss(left)}</div></div>${p.lastFeel&&FEEL[p.lastFeel]?`<div style="text-align:center;font-size:13px;font-weight:600" class="muted">${feelDot(p.lastFeel)} Última serie: ${FEEL[p.lastFeel].t.toLowerCase()}</div>`:""}
       <div class="row" style="justify-content:center"><button class="btn" id="r-minus">−15 s</button><button class="btn" id="r-plus">+15 s</button></div>
-      ${n?nextCardHTML(p,n.s,restTrans(p,n)):""}
+      ${n?nextCardHTML(p,n.s,restTrans(p,n),true):""}
       <button class="btn ghost block" id="peek-open">👁 Ver la rutina sin parar el descanso</button>
       ${sessions().length>1?`<p class="muted" style="margin:0;text-align:center;font-size:13px">Mientras descansa, toca otro cliente arriba para registrar su serie.</p>`:""}
-      <div class="spacer"></div><button class="btn primary block done-btn" id="r-skip">Saltar descanso</button></div>`;
+      ${n?"":`<div class="spacer"></div>`}<button class="btn primary block done-btn" id="r-skip">Saltar descanso</button></div>`;
     return;
   }
   const s=step(p),e=p.exercises[s.ei],u=exUnit(e);
