@@ -1,5 +1,5 @@
 // Service worker: guarda la app para abrir rápido y sin internet. Los datos los sincroniza Firebase.
-const CACHE = "entreno-v62";
+const CACHE = "entreno-v63";
 const SHELL = ["./", "./entrenador/", "./cliente/", "./shared/fb.js", "./shared/firebase-config.js",
   "./entrenador/manifest.webmanifest", "./cliente/manifest.webmanifest", "./icons/entrenador-192.png", "./icons/cliente-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

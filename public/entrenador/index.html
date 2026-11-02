@@ -803,7 +803,7 @@ function render(){
   else if(S.tab==="plantillas")h+=viewTemplates();
   else h+=viewProgress();
   app.innerHTML=h;drawChart();window.scrollTo(0,keepScroll);
-  {const vk=[S.tab,S.clientId,S.progClient,S.progEx,S.progSess].join("|");if(vk!==ANIMV){ANIMV=vk;[...app.children].forEach((c,i)=>{if(c.classList.contains("fab"))return;c.classList.add("rise");c.style.animationDelay=Math.min(i,8)*0.05+"s"})}}
+
   const nav=NAV;NAV=null;if(nav)applyNav(nav);
   if(focusTitle){const t=$("#day-title");if(t){t.value=focusTitle[2];t.focus({preventScroll:true});try{t.setSelectionRange(focusTitle[0],focusTitle[1])}catch(e){}}}
 }
@@ -1425,7 +1425,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 62</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 63</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
