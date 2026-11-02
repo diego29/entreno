@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8">
+<script>try{var v=localStorage.getItem("entreno-theme-c");if(v==="light"||v==="dark")document.documentElement.dataset.theme=v}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#D63A2B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -472,6 +473,14 @@ const TILEI={chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 /* v60: el reloj con los ceros que sobran tenues (01:28 → 0 tenue + 1:28) */
 function mmssDim(s){const x=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");let i=0;while(i<x.length-1&&(x[i]==="0"||x[i]===":"))i++;
   return `<span><span class="tdim">${x.slice(0,i)}</span>${x.slice(i)}</span>`}
+/* v62: apariencia (automático / claro / oscuro), guardada en este teléfono */
+const THEME_KEY="entreno-theme-c";
+function themeGet(){try{const v=localStorage.getItem(THEME_KEY);return v==="light"||v==="dark"?v:"auto"}catch(e){return"auto"}}
+function themeApply(v){const r=document.documentElement;if(v==="light"||v==="dark")r.dataset.theme=v;else delete r.dataset.theme;
+  const dark=v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#111318":"#D63A2B"}
+function themeCard(){const v=themeGet();return `<div class="card stack" id="theme-card"><div class="eyebrow">Apariencia</div><div class="seg">${[["auto","Automático"],["light","Claro"],["dark","Oscuro"]].map(([k,l])=>`<button class="${k===v?"on":""}" data-themeset="${k}">${l}</button>`).join("")}</div><div class="sub" style="white-space:normal">${v==="auto"?"Sigue el modo claro u oscuro de tu teléfono.":v==="dark"?"Siempre en modo oscuro.":"Siempre en modo claro."}</div></div>`}
+try{themeApply(themeGet())}catch(e){}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-themeset]");if(!b)return;const v=b.dataset.themeset;try{v==="auto"?localStorage.removeItem(THEME_KEY):localStorage.setItem(THEME_KEY,v)}catch(x){}themeApply(v);const c=$("#theme-card");if(c)c.outerHTML=themeCard()});
 /* ===== Pantallas ===== */
 function nextWorkout(){
   for(let i=0;i<7;i++){const d=new Date(TODAY);d.setDate(TODAY.getDate()+i);const k=dayKeyOf(d);
@@ -510,7 +519,7 @@ function homeTiles(){const n=[...new Set(LOGS.map(l=>exKey(l.exName)))].length;c
   const tile=(attrs,cls,ic,title,sub)=>`<button class="tile" ${attrs}><span class="ic ${cls}">${TILEI[ic]}</span><span class="grow"><b>${title}</b><small>${sub}</small></span>${TILEI.chev}</button>`;
   return `<div class="tiles">${tile('data-tab="progreso"',"red","chart","Progreso por ejercicio",n?`${n} ejercicios · récords y última vez`:"Aquí verás tus récords")}
     ${tile('data-tab="semana"',"blue","cal","Mi semana",`${wk} día${wk===1?"":"s"} de entreno`)}
-    ${tile('id="profile"',"amber","user","Perfil y avisos","Letra grande, pantalla, avisos")}</div>`}
+    ${tile('id="profile"',"amber","user","Perfil y avisos","Tema, letra grande, pantalla y avisos")}</div>`}
 function viewHoy(){
   const nx=nextWorkout();const thisWeek=SESSIONS.filter(s=>s.date>=iso(monday));
   const planned=Object.keys(WEEK).length;
@@ -671,7 +680,7 @@ function profileSheet(){
     <div class="card stack"><div class="eyebrow">Tu entrenador</div><div class="row"><div class="avatar" style="background:var(--hero);color:var(--hero-ink)">${esc(ME.trainer[0])}</div><div class="grow"><b>${esc(ME.trainer)}</b><div class="sub" style="user-select:all">WhatsApp ${esc(ME.trainerPhone)}</div></div>
     <button class="btn" id="copy-phone">Copiar</button></div></div>
     <label class="check bigtoggle" style="margin-top:12px"><input type="checkbox" id="pf-big" ${BIG?"checked":""}> <span><b>Letra grande</b><br><small class="muted">Más grande y con más contraste, ideal si usas lentes</small></span></label>
-    <label class="check bigtoggle" style="margin-top:4px"><input type="checkbox" id="pf-awake" ${WAKE_ON?"checked":""}> <span><b>Pantalla siempre encendida</b><br><small class="muted">No se apaga mientras la app esté abierta, aunque no la toques. Gasta un poco más de batería.</small></span></label>${notifRow()}`,()=>{
+    <label class="check bigtoggle" style="margin-top:4px"><input type="checkbox" id="pf-awake" ${WAKE_ON?"checked":""}> <span><b>Pantalla siempre encendida</b><br><small class="muted">No se apaga mientras la app esté abierta, aunque no la toques. Gasta un poco más de batería.</small></span></label>${notifRow()}<div style="margin-top:12px">${themeCard()}</div>`,()=>{
     $("#copy-phone").onclick=async()=>{try{await navigator.clipboard.writeText(ME.trainerPhone.replace(/\s/g,""));toast("Número copiado")}catch(e){toast("Mantén presionado el número para copiarlo")}}})}
 
 /* ===== Entrenamiento guiado ===== */

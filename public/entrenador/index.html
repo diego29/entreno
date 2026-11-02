@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8">
+<script>try{var v=localStorage.getItem("entreno-theme-t");if(v==="light"||v==="dark")document.documentElement.dataset.theme=v}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#15181E">
 <link rel="manifest" href="manifest.webmanifest">
@@ -778,6 +779,14 @@ async function remove(path){if(!S.db)return;try{await S.db.doc(path).delete()}ca
 function saveRoutine(c){setTimeout(syncActiveSessions,0);return save("clients/"+c.id,{routine:c.routine||{}},true)}
 
 /* ---------- Render ---------- */
+/* v62: apariencia (automático / claro / oscuro), guardada en este teléfono */
+const THEME_KEY="entreno-theme-t";
+function themeGet(){try{const v=localStorage.getItem(THEME_KEY);return v==="light"||v==="dark"?v:"auto"}catch(e){return"auto"}}
+function themeApply(v){const r=document.documentElement;if(v==="light"||v==="dark")r.dataset.theme=v;else delete r.dataset.theme;
+  const dark=v==="dark"||(v!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#111318":"#15181E"}
+function themeCard(){const v=themeGet();return `<div class="card stack" id="theme-card"><div class="eyebrow">Apariencia</div><div class="seg">${[["auto","Automático"],["light","Claro"],["dark","Oscuro"]].map(([k,l])=>`<button class="${k===v?"on":""}" data-themeset="${k}">${l}</button>`).join("")}</div><div class="sub" style="white-space:normal">${v==="auto"?"Sigue el modo claro u oscuro de tu teléfono.":v==="dark"?"Siempre en modo oscuro.":"Siempre en modo claro."}</div></div>`}
+try{themeApply(themeGet())}catch(e){}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-themeset]");if(!b)return;const v=b.dataset.themeset;try{v==="auto"?localStorage.removeItem(THEME_KEY):localStorage.setItem(THEME_KEY,v)}catch(x){}themeApply(v);const c=$("#theme-card");if(c)c.outerHTML=themeCard()});
 let ANIMV="";
 function render(){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===S.tab));
@@ -1194,8 +1203,8 @@ function viewProgress(){
   let h=`<div class="top"><div><div class="eyebrow">Por cliente y ejercicio</div><h1>Progreso</h1></div></div>`;
   if(!clients.length)return h+`<div class="empty"><strong>Sin clientes todavía</strong>Agrega un cliente para ver aquí su progreso.</div>`;
   const list=exercisesFor(c);
-  {const ns=Object.values(S.sessions).filter(x=>x.clientId===c.id).length,nd=list.filter(x=>x.ss.length).length;
-   h+=`<div class="thero"><div><h2 style="font-size:30px">${esc(c.name)}</h2><div class="hsub">${nd} ejercicio${nd===1?"":"s"} con registros · ${ns} sesi${ns===1?"ón":"ones"}</div></div>
+  {const ns=new Set([...Object.values(S.sessions).filter(x=>x.clientId===c.id).map(x=>x.date),...Object.values(S.logs).filter(l=>l.clientId===c.id).map(l=>l.date)]).size,nd=list.filter(x=>x.ss.length).length;
+   h+=`<div class="thero"><div><h2 style="font-size:30px">${esc(c.name)}</h2><div class="hsub">${nd} ejercicio${nd===1?"":"s"} con registros · ${ns} día${ns===1?"":"s"} entrenado${ns===1?"":"s"}</div></div>
      ${clients.length>1?`<div class="hchips">${clients.map(x=>`<button class="${x.id===S.progClient?"on":""}" data-pc="${esc(x.id)}">${esc((x.name||"").split(" ")[0])}</button>`).join("")}</div>`:""}</div>`}
   if(!list.length)return h+`<div class="empty"><strong>${esc(c.name)} aún no tiene ejercicios</strong>Arma su rutina y registra un entrenamiento con ▶ para ver su progreso.</div>`;
   const sess=Object.values(S.sessions).filter(x=>x.clientId===c.id).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
@@ -1414,8 +1423,9 @@ function settingsSheet(){const p=S.profile||{};
     <label class="check bigtoggle"><input type="checkbox" id="pf-big" ${BIG?"checked":""}> <span><b>Letra grande</b><br><small class="muted">Más grande y con más contraste, ideal si usas lentes</small></span></label>
     <label class="check bigtoggle"><input type="checkbox" id="pf-awake" ${WAKE_ON?"checked":""}> <span><b>Pantalla siempre encendida</b><br><small class="muted">No se apaga mientras la app esté abierta, aunque no la toques. Gasta un poco más de batería.</small></span></label>
     ${notifCard()}
+    ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 61</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 62</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
