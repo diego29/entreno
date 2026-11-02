@@ -1366,7 +1366,7 @@ function settingsSheet(){const p=S.profile||{};
     <label class="check bigtoggle"><input type="checkbox" id="pf-awake" ${WAKE_ON?"checked":""}> <span><b>Pantalla siempre encendida</b><br><small class="muted">No se apaga mientras la app esté abierta, aunque no la toques. Gasta un poco más de batería.</small></span></label>
     ${notifCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 59</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 60</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
