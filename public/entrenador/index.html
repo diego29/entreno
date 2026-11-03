@@ -912,7 +912,7 @@ function viewClient(c){
     ${d.templateId&&S.templates[d.templateId]?`<span class="tag" style="float:right">Rutina base</span>`:""}<input class="daytitle" id="day-title" placeholder="Nombre del día (ej. Pierna)" value="${esc(d.title||"")}" aria-label="Nombre del día"></div>`;
   if(ex.length){const tot=ex.reduce((a,e)=>a+setsOf(e),0);
     h+=W[c.id]?`<button class="btn primary play-btn" id="play" style="margin:0 0 12px">${ICON.play} Continuar rutina en curso</button><p class="muted livehint">En curso: lo que cambies aquí abajo le llega al momento, sin perder las series hechas.</p>`:`${LIVE[c.id]?`<p class="muted livehint">${esc(c.name.split(" ")[0])} ya está entrenando desde su teléfono: lo que cambies aquí le llega al momento.</p>`:""}<button class="btn primary play-btn" id="play" style="margin:0 0 8px">${ICON.play} ${LIVE[c.id]?"Unirme a su rutina":"Iniciar rutina"} · ${ex.length} ejercicios · ${tot} series</button>
-      ${S.week?"":`<button class="btn block" id="mv-day" style="margin:0 0 12px">No vino: mover a otro día</button>`}`}
+      ${S.week?"":`<button class="btn block" id="mv-day" style="margin:0 0 12px">Mover a otro día</button>`}`}
   if(!ex.length)h+=`<div class="empty"><strong>${dname} sin ejercicios</strong>Déjalo vacío si es descanso, o agrega el primer ejercicio.</div>`;
   else{
     const card=(e,i,lbl,gi)=>`<div class="ex"><div class="num">${lbl}</div>${imgFor(e)?`<button class="exthumb" data-zoom="${i}" aria-label="Ver ${esc(e.name)}">${thumb(imgFor(e),"",e.name)}</button>`:""}
@@ -1440,7 +1440,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 64</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 65</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
