@@ -10,17 +10,17 @@
   "theme_color": "#15181E",
   "icons": [
     {
-      "src": "../icons/entrenador-192.png",
+      "src": "../icons/tempo-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "../icons/entrenador-512.png",
+      "src": "../icons/tempo-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "../icons/entrenador-maskable-512.png",
+      "src": "../icons/tempo-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

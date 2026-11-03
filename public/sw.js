@@ -1,7 +1,7 @@
 // Service worker: guarda la app para abrir rápido y sin internet. Los datos los sincroniza Firebase.
-const CACHE = "entreno-v65";
+const CACHE = "entreno-v66";
 const SHELL = ["./", "./entrenador/", "./cliente/", "./shared/fb.js", "./shared/firebase-config.js",
-  "./entrenador/manifest.webmanifest", "./cliente/manifest.webmanifest", "./icons/entrenador-192.png", "./icons/cliente-192.png"];
+  "./entrenador/manifest.webmanifest", "./cliente/manifest.webmanifest", "./icons/tempo-192.png", "./icons/cliente-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -26,7 +26,7 @@ self.addEventListener("push", e => {
   let d = {};
   try { const j = e.data ? e.data.json() : {}; d = { ...j, ...(j.notification || {}), ...(j.data || {}) }; if (j.data && j.notification) { d.title = j.data.title || j.notification.title; d.body = j.data.body || j.notification.body; } } catch (x) { d = { title: "Entreno", body: e.data ? e.data.text() : "" }; }
   const url = d.url || "./", trainer = url.includes("entrenador");
-  const icon = new URL(trainer ? "icons/entrenador-192.png" : "icons/cliente-192.png", self.registration.scope).href;
+  const icon = new URL(trainer ? "icons/tempo-192.png" : "icons/cliente-192.png", self.registration.scope).href;
   e.waitUntil(self.registration.showNotification(d.title || "Entreno", { body: d.body || "", icon, badge: icon, tag: d.tag || undefined, renotify: !!d.tag, vibrate: [200, 100, 200], data: { url } }));
 });
 self.addEventListener("notificationclick", e => {
