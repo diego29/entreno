@@ -1,7 +1,9 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}</style>
+<script>["gesturestart","gesturechange"].forEach(function(t){document.addEventListener(t,function(e){e.preventDefault()},{passive:false})});</script>
 <title>Técnica 3D · Reps</title>
 <script>/* antes de pintar: modo compacto y póster de fondo mientras carga el 3D (sin pantalla de "Cargando") */
 (function(){var q=new URLSearchParams(location.search),e=q.get("ej")||"",d=document.documentElement;if(q.get("compact")==="1")d.classList.add("compact");if(/^[a-z0-9-]+$/.test(e))d.style.setProperty("--poster",'url("posters/'+e+'.svg")');
