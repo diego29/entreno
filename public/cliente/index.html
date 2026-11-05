@@ -1245,7 +1245,10 @@ function closePlayer(){clearInterval(tick);clearInterval(alarmTimer);releaseAwak
 const DEV="c-"+Math.random().toString(36).slice(2,10);
 let LIVE=null,liveSeen=false,lastSig="",dismissed=0,pendingLive=null,inT=null;
 const cleanJ=o=>JSON.parse(JSON.stringify(o??null));
-const liveSig=d=>{const {rev,updatedBy,updatedAt,...x}=d||{};return JSON.stringify(x)};
+const liveSig=d=>{const {rev,updatedBy,updatedAt,hbT,hbC,...x}=d||{};return JSON.stringify(x)};
+/* v70: latido de conexión para que el entrenador vea si estás en línea (hbC) */
+function beatC(){if(!P||!FB?.db||!CID||!linked()||!LIVE?.exercises)return;FB.db.doc("live/"+CID).update({hbC:document.visibilityState==="visible"?Date.now():0}).catch(()=>{})}
+setInterval(beatC,20000);document.addEventListener("visibilitychange",beatC);addEventListener("online",beatC);
 const liveFresh=d=>!!d&&Date.now()-(d.updatedAt||0)<8*3600e3;
 function pOpen(){return !!P&&!$("#player").hidden}
 function linked(){return !!P&&!!LIVE&&LIVE.startedAt===P.startedAt}
@@ -1268,7 +1271,7 @@ function fromLiveC(d){
     energyStart:d.energyStart||"",energyEnd:d.energyEnd||"",cardio:{machine:"",min:"",km:"",...(d.cardio||{})},cardioPlan:d.cardioPlan||null,notes:d.notes||"",
     plates:d.plates||{},bars:d.bars||{},xp:d.xp||{},ack:d.ack||"",dl:!!d.dl,pl:d.pl||{},lastFeel:d.lastFeel||null,lastAt:d.lastAt||0,draft:d.draft||null,sskip:d.sskip||{},startedAt:d.startedAt||Date.now(),startedBy:d.startedBy||"",rev:d.rev||0,synced:true}}
 function pushLive(){if(!P||!FB?.db||!CID)return;const data=toLiveC(P);const sg=liveSig(data);if(sg===lastSig)return;lastSig=sg;
-  P.rev=Math.max(P.rev||0,LIVE?.rev||0)+1;P.synced=true;FB.db.doc("live/"+CID).set({...data,rev:P.rev,updatedBy:DEV,updatedAt:Date.now()}).catch(()=>{})}
+  P.rev=Math.max(P.rev||0,LIVE?.rev||0)+1;P.synced=true;FB.db.doc("live/"+CID).set({...data,rev:P.rev,updatedBy:DEV,updatedAt:Date.now(),hbC:document.visibilityState==="visible"?Date.now():0,hbT:LIVE?.hbT||0}).catch(()=>{})}
 function adopt(d){
   if(bursting){pendingLive=d;return}
   const prev=P;const n=fromLiveC(d);n.srcSig=prev?.srcSig;n.lastOver=prev?.lastOver;n.cardioSt=prev?.cardioSt;n.paused=!!prev?.paused;
@@ -1289,6 +1292,7 @@ function adopt(d){
 }
 function flushPending(){const d=pendingLive;pendingLive=null;if(d&&P&&LIVE===d&&d.updatedBy!==DEV&&(d.rev||0)>=(P.rev||0))adopt(d)}
 function onLive(d){
+  if(d&&(!d.exercises||!d.startedAt))d=null;   // v70: un documento con solo el latido no es un entreno
   const had=LIVE;LIVE=d;const first=!liveSeen;liveSeen=true;
   if(!d){lastSig="";if(P&&P.synced&&had&&had.startedAt===P.startedAt){closePlayer();toast(`El entreno se cerró o se guardó en el teléfono de ${ME.trainer}`);render()}else if(!pOpen())render();return}
   if(P){
@@ -1303,7 +1307,7 @@ function onLive(d){
     try{navigator.vibrate?.([300,120,300])}catch(e){}toast(`${ME.trainer} inició tu entreno. Toca Sincronizar.`)}
   render();
 }
-function joinLive(){if(!liveFresh(LIVE))return;unlockAudio();keepAwake();P=fromLiveC(LIVE);lastSig=liveSig(toLiveC(P));
+function joinLive(){if(!liveFresh(LIVE))return;unlockAudio();keepAwake();setTimeout(beatC,400);P=fromLiveC(LIVE);lastSig=liveSig(toLiveC(P));
   $("#player").hidden=false;document.body.style.overflow="hidden";drawUI()}
 function minimize(){clearInterval(tick);$("#player").hidden=true;document.body.style.overflow="";
   if(P.phase==="rest"){tick=setInterval(()=>{if(!P||P.phase!=="rest"||!$("#player").hidden)return clearInterval(tick);if(Date.now()>=P.restEnd)startAlarm()},500)}

@@ -178,8 +178,14 @@ textarea.inp{min-height:70px;resize:vertical}
 .tab svg{width:22px;height:22px}
 .tab.on{color:var(--accent)}
 /* Sheet */
+.presence{display:flex;gap:8px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}
+.presence .pr{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.presence .pr i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.presence .pr.on i{background:#22A55B;box-shadow:0 0 0 3px rgba(34,165,91,.18)}.presence .pr.off i{background:#E0413A;box-shadow:0 0 0 3px rgba(224,65,58,.16)}
+.presence .pr.off{color:#C2372F}
+.vt-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-right:2px}.vt-dot.on{background:#22A55B}.vt-dot.off{background:#E0413A}
 .le-list{display:flex;flex-direction:column;gap:8px}
-.le-row{display:flex;gap:10px;align-items:flex-start;background:var(--card2,var(--bg));border-radius:16px;padding:10px 10px 10px 12px}
+.le-row{display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:16px;padding:10px 10px 10px 12px}
 .le-row.ss{box-shadow:inset 3px 0 0 var(--accent)}
 .le-n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:12px;display:grid;place-items:center;flex-shrink:0;margin-top:2px}
 .le-t{font-weight:700;font-size:14.5px;line-height:1.3}.le-t .tag{font-size:11px;padding:2px 7px;margin-left:4px;vertical-align:1px}
@@ -788,7 +794,7 @@ let started=false;
 function startData(){setTimeout(()=>FB?.push?.refresh?.("trainer"),4000);
   if(started)return;started=true;document.querySelector(".tabs").hidden=false;
   const db=FB.db;S.db=db;ASSETS=FB.assets||null;render();
-  const sub=(name,key)=>db.collection(name).onSnapshot(snap=>{S[key]={};snap.docs.forEach(d=>S[key][d.id]={id:d.id,...structuredClone(d.data()||{})});if(name==="clients"){S.ready=true;migrateKg();syncActiveSessions()}S.loaded[name]=true;render();if(name==="sessions"||name==="clients")setTimeout(autoClose,1500)},err=>toast("Error al leer "+name+": "+err.code));
+  const sub=(name,key)=>db.collection(name).onSnapshot(snap=>{S[key]={};snap.docs.forEach(d=>S[key][d.id]={id:d.id,...structuredClone(d.data()||{})});if(name==="clients"){S.ready=true;migrateKg();syncActiveSessions()}S.loaded[name]=true;render();if(name==="sessions"||name==="clients")setTimeout(autoClose,1500);if(name==="sessions")setTimeout(dropFinished,0)},err=>toast("Error al leer "+name+": "+err.code));
   sub("media","media");sub("clients","clients");sub("library","library");sub("templates","templates");sub("sessions","sessions");sub("logs","logs");sub("privnotes","priv");
   db.doc("meta/profile").onSnapshot(p=>{S.profile=p||{};render()});
   setTimeout(()=>FB.push?.refresh("trainer"),3000);
@@ -1444,7 +1450,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 69</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 70</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
@@ -1997,11 +2003,31 @@ function fromLive(d,prev){const ex=(d.exercises||[]).map(e=>({...e,sets:String(e
     exercises:ex,results:mapToResults(d.results,ex),plan:d.plan||[],k:d.k||0,skipped:d.skipped||{},phase:d.phase||"set",restEnd:d.restEnd||0,restTotal:d.restTotal||0,
     startedAt:d.startedAt||Date.now(),startedBy:d.startedBy,energyStart:d.energyStart||"",energyEnd:d.energyEnd||"",cardio:d.cardio||{machine:"",min:"",km:""},cardioPlan:d.cardioPlan||null,notes:d.notes||"",
     plates:d.plates||{},bars:d.bars||{},xp:d.xp||{},ack:d.ack||prev?.ack||"",dl:!!d.dl,pl:d.pl||prev?.pl||{},lastFeel:d.lastFeel||null,lastAt:d.lastAt||prev?.lastAt||0,exNotes:d.exNotes||prev?.exNotes||{},draft:d.draft||null,sskip:d.sskip||{},rev:d.rev||0,ready:prev?.ready||false,synced:true}}
-const liveSig=d=>{const {rev,updatedBy,updatedAt,...x}=d||{};return JSON.stringify(x)};
-function pushLive(){if(!S.db)return;Object.values(W).forEach(p=>{const data=toLive(p);const sg=liveSig(data);if(lastPushed[p.clientId]===sg)return;lastPushed[p.clientId]=sg;
-  p.rev=Math.max(p.rev||0,LIVE[p.clientId]?.rev||0)+1;p.synced=true;S.db.doc("live/"+p.clientId).set({...data,rev:p.rev,updatedBy:DEVICE,updatedAt:Date.now()}).catch(()=>{})})}
+const liveSig=d=>{const {rev,updatedBy,updatedAt,hbT,hbC,...x}=d||{};return JSON.stringify(x)};
+/* v70: ¿ese entreno ya se guardó (desde el cliente o desde aquí)? Se reconoce por la hora de inicio */
+function savedElsewhere(p){return !!p?.startedAt&&Object.values(S.sessions).some(x=>x.clientId===p.clientId&&x.startedAt===p.startedAt)}
+function dropFinished(){let n=0;Object.keys(W).forEach(cid=>{const p=W[cid];if(p.sessionSaved||!savedElsewhere(p))return;const nm=p.clientName;delete W[cid];delete lastPushed[cid];n++;
+    const d=LIVE[cid];if(S.db&&d&&d.startedAt===p.startedAt)S.db.doc("live/"+cid).delete().catch(()=>{});
+    toast(`El entrenamiento de ${nm} ya se guardó desde su teléfono`);if(CUR===cid)CUR=null});
+  if(!n)return;persistLocal();const rest=sessions();if(OPEN){if(rest.length){if(!W[CUR])CUR=rest[0].clientId;drawPlayer()}else hidePlayer()}else render()}
+/* v70: conexión en vivo. Cada lado deja un "latido" en live/{cliente} (hbT entrenador, hbC cliente) cada 20 s mientras tiene la app abierta */
+const HB_MS=20000,HB_OK=50000;let hbOkAt=0;
+const peerOn=d=>!!d&&Date.now()-(d.hbC||0)<HB_OK;
+const meOn=()=>navigator.onLine!==false&&Date.now()-hbOkAt<HB_OK;
+function beat(force){if(!S.db)return;const vis=document.visibilityState==="visible";
+  Object.values(W).forEach(p=>{const d=LIVE[p.clientId];if(!p.synced||!d||!d.exercises||d.startedAt!==p.startedAt)return;
+    S.db.doc("live/"+p.clientId).update({hbT:vis?Date.now():0}).then(()=>{if(vis){hbOkAt=Date.now();paintPresence()}}).catch(()=>{})});if(force)paintPresence()}
+function presenceHTML(p){if(!p.synced)return"";const d=LIVE[p.clientId];const me=meOn(),cl=peerOn(d)&&d.startedAt===p.startedAt;const nm=esc((p.clientName||"Cliente").split(" ")[0]);
+  return `<div class="presence" data-pres="${esc(p.clientId)}"><span class="pr ${me?"on":"off"}"><i></i>Tú ${me?"en línea":"sin conexión"}</span><span class="pr ${cl?"on":"off"}"><i></i>${nm} ${cl?"en línea":"fuera de línea"}</span></div>`}
+function paintPresence(){document.querySelectorAll("[data-pres]").forEach(el=>{const p=W[el.dataset.pres];if(p)el.outerHTML=presenceHTML(p)});
+  document.querySelectorAll("[data-vtdot]").forEach(el=>{const p=W[el.dataset.vtdot];const d=p&&LIVE[p.clientId];el.className="vt-dot "+(p&&peerOn(d)&&d.startedAt===p.startedAt?"on":"off")})}
+setInterval(()=>beat(),HB_MS);setInterval(paintPresence,5000);
+document.addEventListener("visibilitychange",()=>beat(true));addEventListener("online",()=>beat(true));addEventListener("offline",paintPresence);
+function pushLive(){if(!S.db)return;Object.values(W).forEach(p=>{if(!p.sessionSaved&&savedElsewhere(p))return setTimeout(dropFinished,0);const data=toLive(p);const sg=liveSig(data);if(lastPushed[p.clientId]===sg)return;lastPushed[p.clientId]=sg;
+  p.rev=Math.max(p.rev||0,LIVE[p.clientId]?.rev||0)+1;p.synced=true;const vis=document.visibilityState==="visible";S.db.doc("live/"+p.clientId).set({...data,rev:p.rev,updatedBy:DEVICE,updatedAt:Date.now(),hbT:vis?Date.now():0,hbC:LIVE[p.clientId]?.hbC||0}).then(()=>{if(vis)hbOkAt=Date.now()}).catch(()=>{})})}
 function onLiveSnap(snap){
-  const now={};let changed=false;snap.docs.forEach(d=>{const x=d.data();now[x.clientId||d.id]=x});
+  const now={};let changed=false;snap.docs.forEach(d=>{const x=d.data();if(!x||!x.exercises||!x.startedAt){if(S.db&&!x?.exercises)S.db.doc("live/"+d.id).delete().catch(()=>{});return}
+    if(Object.values(S.sessions).some(s=>s.clientId===(x.clientId||d.id)&&s.startedAt===x.startedAt))return;now[x.clientId||d.id]=x});
   Object.values(now).forEach(d=>{const cid=d.clientId;const p=W[cid];
     if(p){if((d.rev||0)>=(p.rev||0)&&d.updatedBy!==DEVICE&&liveSig(d)!==lastPushed[cid]){
       if(bursting&&CUR===cid){setTimeout(()=>{if(LIVE[cid]===d&&W[cid]&&(d.rev||0)>=(W[cid].rev||0))onLiveSnap({docs:Object.values(LIVE).map(x=>({id:x.clientId,data:()=>x}))})},1200);return}
@@ -2011,7 +2037,7 @@ function onLiveSnap(snap){
   Object.keys(W).forEach(cid=>{if(!now[cid]&&W[cid].synced&&(LIVE[cid]||liveFirst)){const n=W[cid].clientName;delete W[cid];delete lastPushed[cid];persistLocal();
     changed=true;if(!liveFirst)toast(`El entrenamiento de ${n} se cerró o se guardó desde su teléfono`);
     if(CUR===cid){const rest=sessions();if(rest.length&&OPEN){CUR=rest[0].clientId;drawPlayer()}else{CUR=null;if(OPEN)hidePlayer()}}}});
-  const first=liveFirst;try{watchNotes(now,first)}catch(e){}LIVE=now;liveFirst=false;if(first)pushLive();if(JOIN)setTimeout(handleJoin,0);if(!OPEN)render();else if(changed&&!bursting&&W[CUR])keepFocus(drawPlayer);
+  const first=liveFirst;try{watchNotes(now,first)}catch(e){}LIVE=now;liveFirst=false;if(first)pushLive();paintPresence();if(JOIN)setTimeout(handleJoin,0);if(!OPEN)render();else if(changed&&!bursting&&W[CUR])keepFocus(drawPlayer);
 }
 function keepFocus(fn){const ae=document.activeElement,pl=$("#player");const id=ae&&pl&&pl.contains(ae)&&ae.id?ae.id:null,v=id?ae.value:null;fn();
   if(id&&document.getElementById(id)){const x=document.getElementById(id);x.value=v;x.focus();x.dispatchEvent(new Event("input",{bubbles:true}))}}
@@ -2082,7 +2108,7 @@ armBack();
   addEventListener("touchend",e=>{if(!ok||x0==null)return;const t=e.changedTouches[0];const dx=t.clientX-x0,dy=Math.abs(t.clientY-y0);x0=null;
     if(dx>80&&dy<45&&Date.now()-t0<700)swipeBack()},{passive:true})})();
 
-function joinLive(cid){const d=LIVE[cid];if(!d)return;W[cid]=fromLive(d,W[cid]);lastPushed[cid]=liveSig(toLive(W[cid]));persistLocal();showPlayer(cid);try{syncActiveSessions()}catch(e){}}
+function joinLive(cid){const d=LIVE[cid];if(!d)return;setTimeout(()=>beat(true),400);W[cid]=fromLive(d,W[cid]);lastPushed[cid]=liveSig(toLive(W[cid]));persistLocal();showPlayer(cid);try{syncActiveSessions()}catch(e){}}
 function liveOffersHTML(){const offers=Object.values(LIVE).filter(d=>!W[d.clientId]&&!dismissedOffers[d.clientId+":"+d.startedAt]);
   return offers.map(d=>`<div class="banner liveoffer row"><span class="pulse"></span><span class="grow"><b>${esc(S.clients[d.clientId]?.name||"Cliente")}</b> inició <b>${esc(d.title||"su rutina")}</b>${d.startedBy==="cliente"?" desde su app":""}.</span>
     <button class="btn primary" data-join="${esc(d.clientId)}">Sincronizar</button><button class="icon-btn" data-nojoin="${esc(d.clientId)}:${esc(d.startedAt)}" aria-label="Ahora no">${ICON.close}</button></div>`).join("")}
@@ -2287,7 +2313,7 @@ function vtileHTML(p){const st=statusOf(p);const cls=p.phase==="done"?"fin":p.ph
   else if(p.phase==="energy")mid=`<div class="vt-lbl">Antes de empezar</div><div class="vt-sub">Nivel de energía</div>`;
   else{const s=step(p),e=p.exercises[s.ei];const last=p.results[s.ei].filter(Boolean).pop();
     mid=`${p.ready?`<div class="vt-go">¡Le toca!</div>`:""}<div class="vt-ex">${esc(e.name)}</div><div class="vt-lbl">Serie ${s.si+1} de ${setsOf(e)}</div><div class="vt-sub">${last?`Anterior: ${esc(last.reps)} × ${esc(last.weight||"—")}`:`Meta ${esc(e.reps||"–")} reps${e.weight?" · "+esc(firstNum(e.weight))+" lb":""}`}</div>`}
-  return `<button class="vtile st-${cls}" data-vt="${esc(p.clientId)}"><div class="vt-top"><span class="vt-av">${esc((p.clientName||"?").trim()[0]||"?").toUpperCase()}</span><span class="vt-nm">${esc(p.clientName)}</span></div>
+  return `<button class="vtile st-${cls}" data-vt="${esc(p.clientId)}"><div class="vt-top">${p.synced?`<span class="vt-dot ${peerOn(LIVE[p.clientId])&&LIVE[p.clientId]?.startedAt===p.startedAt?"on":"off"}" data-vtdot="${esc(p.clientId)}"></span>`:""}<span class="vt-av">${esc((p.clientName||"?").trim()[0]||"?").toUpperCase()}</span><span class="vt-nm">${esc(p.clientName)}</span></div>
     <div class="vt-mid">${mid}</div>
     <div class="vt-bot"><div class="vt-bar"><i style="width:${tot?Math.round(done/tot*100):0}%"></i></div><span>${done}/${tot} series</span></div></button>`}
 function vtilesHTML(){const list=sessions();const offers=Object.values(LIVE).filter(d=>!W[d.clientId]);
@@ -2408,7 +2434,7 @@ function liveEditSheet(p){const C=()=>S.clients[p.clientId],D=()=>routineOf(C()|
 function headHTML(p,label){
   return `<div class="row"><button class="icon-btn" id="pl-min" aria-label="Minimizar">${ICON.down}</button><button class="icon-btn" id="pl-ping" aria-label="Mandar nota en vivo al cliente">${CHAT_SVG}</button><button class="icon-btn notesbtn ${(p.notes||"").trim()?"has":""} ${NOTES_OPEN?"on":""}" id="pl-notes" aria-label="Notas de la sesión"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13 7l4 4"/></svg></button>
     <div class="grow" style="text-align:center"><div class="eyebrow">${p.synced?'<span class="syncdot" title="Sincronizado con el cliente"></span>':""}${esc(p.clientName)} · ${esc(p.title||p.dayName)}</div><div style="font-weight:600;font-size:13px">${label}</div></div>
-    <button class="icon-btn" id="pl-edit" aria-label="Editar la rutina en curso">${LIST_SVG}</button><button class="icon-btn" id="pl-exit" aria-label="Salir de esta rutina">${ICON.close}</button></div>${switcherHTML()}${pbarHTML(p)}${notesPanel(p)}`;
+    <button class="icon-btn" id="pl-edit" aria-label="Editar la rutina en curso">${LIST_SVG}</button><button class="icon-btn" id="pl-exit" aria-label="Salir de esta rutina">${ICON.close}</button></div>${presenceHTML(p)}${switcherHTML()}${pbarHTML(p)}${notesPanel(p)}`;
 }
 /* v58: en el descanso, lo que sigue: peso a usar y, al cambiar de ejercicio, el dibujo del equipo (barra, Hammer, mancuernas, barra fija) */
 const LOADNM={plates2:"Barra libre",smith:"Smith",hammer:"Máquina tipo Hammer",plates1:"Remo T · un lado"};
