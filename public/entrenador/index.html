@@ -24,7 +24,7 @@
 .nextcard{display:grid;gap:8px}.nextcard .nc-top{display:flex;gap:12px;align-items:center}.nextcard .nc-w{margin-left:auto;text-align:right;font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
 .nextcard .nc-w small{display:block;font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted)}.nextcard .nc-g{background:var(--surface2);border-radius:12px;padding:8px}.nextcard .nc-g svg{width:100%;height:auto;display:block}
 .nextcard .nc-why{font-size:13px;color:var(--muted)}
-.nextcard.big{flex:1;display:flex;flex-direction:column;gap:10px;min-height:0}
+.nextcard.big{flex:1 0 auto;display:flex;flex-direction:column;gap:12px}
 .nextcard.big .nc-media{flex:1;min-height:120px;max-height:44vh;border-radius:14px;background:var(--surface2);overflow:hidden;display:grid;place-items:center}
 .nextcard.big .nc-media img{width:100%;height:100%;object-fit:contain}
 .nc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -32,10 +32,10 @@
 .nc-stats b{display:block;font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05}
 .nc-stats small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nc-note{font-size:14px;line-height:1.35;background:var(--surface2);border-radius:12px;padding:8px 10px}
-.player .in.restv{height:100%;min-height:0}
+.player .in.restv{min-height:100%}   /* v71: crece y se desplaza en vez de encimar */
 .nextcard.big .nc-media{min-height:90px;max-height:none}
-.nextcard.big .nc-g{flex:1;display:grid;place-items:center;min-height:0}
-.nc-bigw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border-radius:14px;min-height:110px}
+.nextcard.big .nc-g{flex:1 0 auto;display:grid;place-items:center;min-height:110px}
+.nc-bigw{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border-radius:14px;min-height:110px}
 .nc-bigw b{font-family:var(--display);font-weight:800;font-size:72px;line-height:1}
 .nc-bigw small{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
 .nc-stats.two{grid-template-columns:1fr 1fr}
@@ -57,6 +57,7 @@
 .ex3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.ex3>div{background:var(--surface2);border-radius:12px;padding:8px 6px;text-align:center;min-width:0}
 .ex3 b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ex3 small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .ex3>div.rec{background:var(--accent-soft)}.ex3>div.rec b,.ex3>div.rec small{color:var(--accent)}
+.restfoot{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:2px}
 .restcard{display:flex;align-items:center;gap:16px;padding:16px;border-radius:24px}
 .restcard .rt{position:relative;width:112px;height:112px;flex:none}.restcard .rt svg{width:100%;height:100%;transform:rotate(-90deg)}
 .restcard .rt .t{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:34px;font-variant-numeric:tabular-nums}
@@ -1450,7 +1451,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 70</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 71</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
@@ -2503,9 +2504,9 @@ function drawPlayer0(){
         return `<div class="muted" style="font-size:13px">Última serie: <b style="color:var(--ink)">${esc(r.reps)} × ${esc(r.weight||"—")}</b>${r.feel&&FEEL[r.feel]?` · ${FEEL[r.feel].t.toLowerCase()}`:""}</div>`})()}
       <div class="row" style="gap:8px"><button class="btn" id="r-minus">−15 s</button><button class="btn" id="r-plus">+15 s</button></div></div></div>
       ${n?nextCardHTML(p,n.s,restTrans(p,n),true):""}
-      <button class="btn ghost block" id="peek-open">👁 Ver la rutina sin parar el descanso</button>
-      ${sessions().length>1?`<p class="muted" style="margin:0;text-align:center;font-size:13px">Mientras descansa, toca otro cliente arriba para registrar su serie.</p>`:""}
-      ${n?"":`<div class="spacer"></div>`}<button class="btn primary block done-btn" id="r-skip">Saltar descanso</button></div>`;
+      <div class="restfoot"><button class="btn ghost block" id="peek-open">👁 Ver la rutina sin parar el descanso</button>
+      ${sessions().length>1?`<p class="muted" style="margin:0;text-align:center;font-size:12.5px">Mientras descansa, toca otro cliente arriba para registrar su serie.</p>`:""}
+      <button class="btn primary block done-btn" id="r-skip">Saltar descanso</button></div></div>`;
     return;
   }
   const s=step(p),e=p.exercises[s.ei],u=exUnit(e);
