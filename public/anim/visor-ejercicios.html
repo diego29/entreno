@@ -1992,8 +1992,8 @@ function placeFRow(){const R=C.rest,hp=R.Hips.p,hw=G.localToWorld(hp.clone()),st
   frw.pad.position.set(0,st-.04,(z0+z1)/2);const [b0,b1,b2,b3,b4,b5,b6]=frw.bars;
   bar3(b0,V(0,.04,z0+.08),V(0,st-.08,z0+.08),.07);bar3(b1,V(0,.04,z1-.08),V(0,st-.08,z1-.08),.07);bar3(b2,V(0,.03,z0-.05),V(0,.03,fz+.1),.08);
   bar3(b3,V(-.26,.03,z0+.08),V(.26,.03,z0+.08),.07);
-  const pc=V(0,.24,fz);frw.plate.position.copy(pc);frw.plate.rotation.set(-.45,0,0);   // plataforma inclinada hacia ti
-  bar3(b4,V(0,.03,fz+.1),pc.clone().add(V(0,0,.05)),.06);bar3(b5,V(-.24,.06,fz+.02),V(-.24,.36,fz-.12),.04);bar3(b6,V(.24,.06,fz+.02),V(.24,.36,fz-.12),.04);
+  const pc=V(0,.27,fz+.07);frw.plate.position.copy(pc);frw.plate.rotation.set(.45,0,0);   // v73: plataforma inclinada hacia el frente; la planta del pie se apoya completa
+  bar3(b4,V(0,.03,fz+.1),pc.clone().add(V(0,-.02,.05)),.06);bar3(b5,V(-.24,.03,fz),V(-.24,.415,fz+.184),.04);bar3(b6,V(.24,.03,fz),V(.24,.415,fz+.184),.04);
   FRW={fz};placeCable()}
 Object.assign(EX,{
   'face-pull-sentado':{...EX['face-pull-polea'],nombre:'Face pull sentado en polea',show:['cable','frow'],
