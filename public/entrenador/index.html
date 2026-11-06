@@ -1168,7 +1168,7 @@ function viewLibrary(){
   const counts={};all.forEach(x=>{const g=GROUPS.includes(x.group)?x.group:"Otro";counts[g]=(counts[g]||0)+1});
   if(S.libGroup!=="Todos"&&!GROUPS.includes(S.libGroup))S.libGroup="Todos";
   let h=`<div class="top"><div><div class="eyebrow">Tus ejercicios por parte del cuerpo</div><h1>Biblioteca</h1></div><span class="tag">${all.length} ejercicios</span></div>
-    <a class="btn block" href="../anim/biblioteca.html" style="margin:-4px 0 12px;text-decoration:none;color:var(--ink)">Ver la biblioteca 3D: animaciones, agregar y correcciones</a>`;
+    <a class="btn block" href="../biblioteca/" style="margin:-4px 0 12px;text-decoration:none;color:var(--ink)">Ver la biblioteca 3D: animaciones, agregar y correcciones</a>`;
   h+=patCardHTML();
   h+=`<div class="seg" style="margin-bottom:14px"><button class="${S.libGroup==="Todos"?"on":""}" data-lg="Todos">Todos</button>${GROUPS.map(g=>`<button class="${g===S.libGroup?"on":""}" data-lg="${esc(g)}">${esc(g)}${counts[g]?` <small>${counts[g]}</small>`:""}</button>`).join("")}</div>`;
   const shown=S.libGroup==="Todos"?GROUPS.filter(g=>counts[g]||!["Cardio","Otro"].includes(g)):[S.libGroup];
@@ -1456,7 +1456,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 74</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 75</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }

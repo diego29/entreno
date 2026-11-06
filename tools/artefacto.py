@@ -9,9 +9,10 @@ visor=open(os.path.join(R,'visor-ejercicios.html')).read()
 n=visor.count('new URLSearchParams(location.search)');assert n==2,n
 visor=visor.replace('new URLSearchParams(location.search)','new URLSearchParams(window.__Q||location.search)')
 visor=visor.replace('url("posters/\'+e+\'.svg")','none')   # sin póster de fondo (no hay archivos sueltos)
-page=open(os.path.join(R,'biblioteca.html')).read()
+page=open(os.path.join(R,'..','biblioteca','index.html')).read()
 body=page[page.index('<title>'):page.index('</head>')]+page[page.index('<body>')+6:page.index('</body>')]
 body=body.replace('<script type="module">if(!window.__ART)import("../shared/fb.js")</script>','')
+import re;body=re.sub(r'<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n?|<meta name="(theme-color|apple-mobile-web-app-[a-z]+)"[^>]*>\n?','',body)
 data='<script>window.__ART='+json.dumps({'cat':cat,'imgs':imgs,'fbx':fbx,'visor':visor},ensure_ascii=False).replace('</','<\\/')+'</script>\n'
 i=body.index('<script>\n/* Funciona en dos lugares')
 out=body[:i]+data+body[i:]

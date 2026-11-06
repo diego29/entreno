@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Biblioteca 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#15181E">
+<link rel="icon" href="../icons/biblioteca-192.png">
+<link rel="apple-touch-icon" href="../icons/biblioteca-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Biblioteca">
+<script>try{var v=localStorage.getItem("entreno-theme-t");if(v==="light"||v==="dark")document.documentElement.dataset.theme=v}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Catálogo de los ejercicios del motor 3D: rejilla de fichas → hoja con el visor vivo, los valores para tu biblioteca y las correcciones pendientes.
+   Mismos colores y letras que Tempo y Reps. */
+:root{
+  --bg:#EEF0F3;--surface:#FFFFFF;--surface2:#F6F7F9;--ink:#15181E;--muted:#5E6573;--line:#D9DDE3;
+  --accent:#D63A2B;--accent-ink:#B3271A;--accent-soft:#FBE4E1;--ok:#1F7A44;--ok-soft:#E1F2E8;--warn:#8A5A12;--warn-soft:#FBF0DC;
+  --stage:#15181E;--scrim:rgba(21,24,30,.45);
+  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;--body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101318;--surface:#1A1E25;--surface2:#232831;--ink:#ECEEF2;--muted:#9AA1AE;--line:#2E343E;
+  --accent:#F0533F;--accent-ink:#FF8A7A;--accent-soft:#3A1F1C;--ok:#5CCB8A;--ok-soft:#173225;--warn:#E7B460;--warn-soft:#352A16;
+  --stage:#0C0E12;--scrim:rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101318;--surface:#1A1E25;--surface2:#232831;--ink:#ECEEF2;--muted:#9AA1AE;--line:#2E343E;
+  --accent:#F0533F;--accent-ink:#FF8A7A;--accent-soft:#3A1F1C;--ok:#5CCB8A;--ok-soft:#173225;--warn:#E7B460;--warn-soft:#352A16;
+  --stage:#0C0E12;--scrim:rgba(0,0,0,.6);color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,52px);line-height:.92;text-transform:uppercase;margin:4px 0 0;text-wrap:balance}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.head .sum{color:var(--muted);font-size:14px;margin-top:6px}
+.who{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{height:42px;padding:0 16px;border-radius:13px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:transparent}
+.btn[disabled]{opacity:.55;cursor:default}
+.btn svg{width:18px;height:18px}
+.tools{display:flex;flex-direction:column;gap:10px;background:var(--surface);border-radius:20px;padding:12px}
+.trow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{flex:1 1 220px;min-width:0;height:44px;border-radius:13px;border:1px solid var(--line);background:var(--surface2);padding:0 14px}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:13px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;height:36px;padding:0 12px;border-radius:10px;font-weight:600;font-size:13.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
+.card{display:flex;flex-direction:column;text-align:left;border:0;padding:0;border-radius:18px;background:var(--surface);overflow:hidden;transition:transform .15s ease,box-shadow .15s ease}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(0,0,0,.45)}
+.card .ph{aspect-ratio:1;max-width:100%;background:var(--stage);position:relative}
+.card .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.card .flag{position:absolute;left:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap}
+.card .bd{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card .nm{font-weight:700;font-size:14px;line-height:1.25}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.g{background:var(--surface2);color:var(--muted)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.add{background:var(--accent-soft);color:var(--accent-ink)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.card .flag .pill{box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.meta{display:flex;gap:6px;flex-wrap:wrap}
+.empty{background:var(--surface);border-radius:18px;padding:28px;text-align:center;color:var(--muted)}
+/* barra inferior */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+  padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dock .in{max-width:1180px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dock .txt{flex:1 1 200px;min-width:0;font-size:13px;color:var(--muted)}
+.dock .txt b{color:var(--ink)}
+@media (max-width:600px){.dock .txt{display:none}.dock .btn{flex:1 1 0;padding:0 10px;font-size:13.5px}}
+/* hoja de detalle */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;opacity:0;transition:opacity .2s ease}
+.scrim.open{opacity:1}
+.sheet{position:fixed;z-index:21;inset:auto 0 0 0;max-height:94vh;overflow:auto;background:var(--bg);border-radius:24px 24px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.open{transform:none}
+@media (min-width:900px){.sheet{inset:24px 24px 24px auto;width:min(980px,calc(100vw - 48px));max-height:none;border-radius:24px;transform:translateX(110%)}.sheet.open{transform:none}}
+.sh-top{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:center;gap:8px;padding:12px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.sh-top .t{flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
+.ib svg{width:20px;height:20px}
+.sh-body{display:grid;gap:16px;padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+@media (min-width:900px){.sh-body{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}.stagebox{position:sticky;top:76px}}
+.stagebox{display:flex;flex-direction:column;gap:10px;min-width:0}
+.stage{position:relative;aspect-ratio:1;max-width:100%;width:100%;border-radius:20px;overflow:hidden;background:var(--stage) center/cover no-repeat}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.stage .ld{position:absolute;left:12px;bottom:12px;font-size:12px;font-weight:600;color:#C9CED6;background:rgba(0,0,0,.45);padding:4px 10px;border-radius:999px}
+.hint{font-size:12.5px;color:var(--muted)}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ttl{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;text-transform:uppercase;text-wrap:balance;margin:0}
+.box{background:var(--surface);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.box h3{margin:0;font-size:15px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.musc{display:flex;flex-wrap:wrap;gap:6px}
+.musc .pill.main{background:var(--accent);color:#fff}
+.form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+.f.full{grid-column:1/-1}
+.f.half{grid-column:span 3}
+@media (min-width:520px){.f.half{grid-column:span 1}}
+.inp{height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);padding:0 12px;font-size:15px;color:var(--ink);font-weight:500;min-width:0;width:100%}
+textarea.inp{height:auto;min-height:76px;padding:10px 12px;resize:vertical;line-height:1.4}
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border-radius:12px;padding:10px 12px}
+.note input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--ok);flex:none}
+.note .tx{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
+.note .tx small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.note.done .tx{color:var(--muted);text-decoration:line-through}
+.note .del{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:700;padding:2px 4px}
+.lock{font-size:13px;color:var(--muted);background:var(--surface2);border-radius:12px;padding:10px 12px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;z-index:40;background:var(--ink);color:var(--bg);font-weight:600;font-size:14px;padding:10px 16px;border-radius:12px;transition:.2s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.copyout{width:100%;min-height:160px;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-reduced-motion:reduce){.sheet,.scrim,.card,.btn,.toast{transition:none}}
+</style></head><body>
+<div class="wrap">
+  <header class="head">
+    <div><div class="eyebrow">Entreno · motor 3D</div><h1>Biblioteca 3D</h1><div class="sum" id="sum">Cargando ejercicios…</div></div>
+    <div class="who" id="who"></div>
+  </header>
+  <section class="tools" aria-label="Filtros">
+    <div class="trow">
+      <input class="search" id="q" type="search" placeholder="Buscar: remo, pec fly, sentadilla…" autocomplete="off">
+      <div class="seg" role="group" aria-label="Personaje"><button type="button" data-mod="hombre" aria-pressed="true">Hombre</button><button type="button" data-mod="mujer" aria-pressed="false">Mujer</button></div>
+      <select class="inp" id="st" style="width:auto;flex:none" aria-label="Mostrar">
+        <option value="">Todos</option><option value="lib">En tu biblioteca</option><option value="falta">Por agregar</option><option value="corr">Con corrección pendiente</option>
+      </select>
+    </div>
+    <div class="chips" id="groups"></div>
+  </section>
+  <div class="grid" id="grid"></div>
+</div>
+<div class="dock"><div class="in">
+  <div class="txt" id="dtxt">Toca un ejercicio para verlo en 3D.</div>
+  <button class="btn" id="newreq" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Pedir ejercicio nuevo</button>
+  <button class="btn primary" id="copyall" type="button">Copiar pendientes</button>
+</div></div>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" hidden></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* Funciona en dos lugares:
+   - En el sitio (entreno…workers.dev/anim/biblioteca.html): lee catalogo.json, abre el visor real y, con tu cuenta de entrenador,
+     agrega o edita en tu biblioteca y guarda las correcciones en la base (privnotes/_anim3d).
+   - Como artefacto (window.__ART con todo incluido): mismo catálogo y visor 3D; las correcciones quedan en este navegador. */
+const ART=window.__ART||null;
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const GROUPS=["Pecho","Espalda","Hombro","Brazo","Pierna","Core"];
+const S={cat:[],pats:[],lib:{},notes:[],mod:"hombre",g:"Todos",q:"",st:"",cur:null,db:null,trainer:false,user:null};
+try{const m=localStorage.getItem("bib3d-mod");if(m==="mujer")S.mod="mujer"}catch(e){}
+let tT;function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(tT);tT=setTimeout(()=>el.classList.remove("on"),2400)}
+const imgOf=id=>ART?ART.imgs[id]:`../anim/fotos/${id}.jpg`;
+const libOf=id=>Object.values(S.lib).find(x=>x.img==="anim:"+id);
+const pend=id=>S.notes.filter(n=>!n.done&&n.ex===id);
+const fmtD=t=>new Date(t).toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+
+/* ---------- correcciones: en la base (sitio) o en este navegador (artefacto) ---------- */
+function loadLocalNotes(){try{S.notes=JSON.parse(localStorage.getItem("bib3d-notas")||"[]")}catch(e){S.notes=[]}}
+async function saveNotes(){if(S.db&&S.trainer){try{await S.db.doc("privnotes/_anim3d").set({items:S.notes,updatedAt:Date.now()});return true}catch(e){toast("No se guardó: "+(e?.code||"error"));return false}}
+  try{localStorage.setItem("bib3d-notas",JSON.stringify(S.notes))}catch(e){}return true}
+
+/* ---------- rejilla ---------- */
+function filtered(){const q=S.q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  return S.cat.filter(e=>(S.g==="Todos"||e.grupo===S.g)&&(!q||(e.nombre+" "+e.id+" "+e.musc.map(m=>m.m).join(" ")).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(q))
+    &&(!S.st||(S.st==="lib"&&libOf(e.id))||(S.st==="falta"&&!libOf(e.id))||(S.st==="corr"&&pend(e.id).length)))}
+function drawGroups(){const c={};S.cat.forEach(e=>c[e.grupo]=(c[e.grupo]||0)+1);
+  $("#groups").innerHTML=["Todos",...GROUPS.filter(g=>c[g])].map(g=>`<button type="button" class="chip" data-g="${g}" aria-pressed="${S.g===g}">${g} ${g==="Todos"?S.cat.length:c[g]}</button>`).join("")}
+function drawGrid(){const list=filtered();const haveLib=!!S.trainer;
+  $("#grid").innerHTML=list.length?list.map(e=>{const L=libOf(e.id),p=pend(e.id).length;
+    return `<button type="button" class="card" data-ex="${e.id}"><div class="ph"><img src="${imgOf(e.id)}" alt="" loading="lazy" decoding="async">
+      <div class="flag">${p?`<span class="pill warn">${p} corrección${p>1?"es":""}</span>`:""}</div></div>
+      <div class="bd"><div class="nm">${esc(e.nombre)}</div><div class="meta"><span class="pill g">${esc(e.grupo)}</span>${haveLib?(L?`<span class="pill ok">En tu biblioteca</span>`:`<span class="pill add">Por agregar</span>`):""}</div></div></button>`}).join("")
+    :`<div class="empty" style="grid-column:1/-1">Ningún ejercicio coincide. Prueba con otra palabra o quita el filtro.</div>`;
+  const inLib=S.cat.filter(e=>libOf(e.id)).length,np=S.notes.filter(n=>!n.done).length;
+  $("#sum").textContent=`${S.cat.length} ejercicios con animación`+(S.trainer?` · ${inLib} en tu biblioteca`:"");
+  $("#dtxt").innerHTML=np?`<b>${np} pendiente${np>1?"s":""}</b> para corregir o crear. Cópialos y pégalos en el chat con Claude.`:"Toca un ejercicio para verlo en 3D, agregarlo o anotar una corrección.";
+  $("#copyall").textContent=np?`Copiar pendientes (${np})`:"Copiar pendientes";$("#copyall").disabled=!np}
+function drawAll(){drawGroups();drawGrid();if(S.cur)drawSheet(false)}
+
+/* ---------- visor ---------- */
+function viewerSrc(id){return `../anim/visor-ejercicios.html?ej=${encodeURIComponent(id)}&modelo=${S.mod}&compact=1`}
+let fbxCache={};
+window.__fbxBuf=m=>{if(!fbxCache[m]){const b=atob(ART.fbx[m]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);fbxCache[m]=u.buffer}return fbxCache[m].slice(0)};
+function mountViewer(){const box=$("#stage");if(!box||!S.cur)return;const id=S.cur;box.style.backgroundImage=`url("${imgOf(id)}")`;
+  const f=document.createElement("iframe");f.title="Animación 3D de "+(S.cat.find(e=>e.id===id)?.nombre||id);f.setAttribute("allow","fullscreen");
+  if(ART){const q=`ej=${id}&modelo=${S.mod}&compact=1`;
+    const shim=`<script>window.__Q=${JSON.stringify(q)};(function(){var F=window.fetch;window.fetch=function(u,o){var s=String(u);if(/^modelos\\//.test(s)){var m=/mujer/.test(s)?"mujer":"hombre";return Promise.resolve({ok:true,status:200,arrayBuffer:function(){return Promise.resolve(parent.__fbxBuf(m))}})}return F.apply(this,arguments)}})()<\/script>`;
+    f.srcdoc=ART.visor.replace("<head>","<head>"+shim)}
+  else f.src=viewerSrc(id);
+  box.querySelector("iframe")?.remove();box.appendChild(f)}
+
+/* ---------- hoja de detalle ---------- */
+const X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+const L_='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg>';
+const R_='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>';
+function patOpts(cur){const gs=[...new Set(S.pats.map(p=>p[2]))];return `<option value="">Sin patrón</option>`+gs.map(g=>`<optgroup label="${esc(g)}">${S.pats.filter(p=>p[2]===g).map(([k,n])=>`<option value="${k}" ${k===cur?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>`).join("")}
+function libBox(e){
+  if(ART)return `<div class="box"><h3>Para tu biblioteca</h3><div class="lock">Valores sugeridos: <b>${esc(e.lib.sets)} × ${esc(e.lib.reps)}</b>, ${esc(e.lib.rest)} s de descanso.${e.lib.notes?" "+esc(e.lib.notes):""}<br>Para agregarlo o editarlo, abre esta página desde tu sitio con tu cuenta de entrenador.</div></div>`;
+  if(!S.trainer)return `<div class="box"><h3>Para tu biblioteca</h3><div class="lock">Entra con tu cuenta de entrenador para agregarlo o editarlo en tu biblioteca.</div><button class="btn primary" type="button" data-act="login">Entrar con Google</button></div>`;
+  const L=libOf(e.id),v=L||e.lib;
+  return `<div class="box"><h3>${L?"En tu biblioteca":"Agregar a tu biblioteca"}${L?`<span class="pill ok">Guardado</span>`:`<span class="pill add">Falta</span>`}</h3>
+    <div class="form">
+      <label class="f full">Nombre<input class="inp" id="l-name" value="${esc(v.name||e.nombre)}"></label>
+      <label class="f half">Grupo<select class="inp" id="l-group">${GROUPS.map(g=>`<option ${((v.group||e.grupo)===g)?"selected":""}>${g}</option>`).join("")}</select></label>
+      <label class="f" style="grid-column:span 2">Patrón<select class="inp" id="l-pat">${patOpts(v.pattern||"")}</select></label>
+      <label class="f">Series<input class="inp" id="l-sets" inputmode="numeric" value="${esc(v.sets||"3")}"></label>
+      <label class="f">Reps<input class="inp" id="l-reps" value="${esc(v.reps||"10-12")}"></label>
+      <label class="f">Descanso (s)<input class="inp" id="l-rest" inputmode="numeric" value="${esc(v.rest||"90")}"></label>
+      <label class="f full">Nota para tus clientes<textarea class="inp" id="l-notes" rows="2">${esc(v.notes||"")}</textarea></label>
+    </div>
+    <button class="btn primary" type="button" data-act="savelib">${L?"Guardar cambios":"Agregar a mi biblioteca"}</button>
+    ${L?`<div class="hint">Los cambios aplican al ejercicio de tu biblioteca. Las rutinas que ya lo tienen conservan sus series y pesos.</div>`:""}</div>`}
+function notesBox(e){const all=S.notes.filter(n=>n.ex===e.id).sort((a,b)=>a.done-b.done||b.at-a.at);
+  return `<div class="box"><h3>Correcciones del 3D ${pend(e.id).length?`<span class="pill warn">${pend(e.id).length} pendiente${pend(e.id).length>1?"s":""}</span>`:""}</h3>
+    ${all.length?`<div class="notes">${all.map(n=>`<div class="note ${n.done?"done":""}"><input type="checkbox" data-done="${n.id}" ${n.done?"checked":""} aria-label="Marcar como corregido"><div class="tx">${esc(n.text)}<small>${fmtD(n.at)}${n.done?" · corregido":""}</small></div><button class="del" type="button" data-del="${n.id}">Borrar</button></div>`).join("")}</div>`:`<div class="hint">¿Algo se ve mal? Describe qué y en qué momento: "los pies atraviesan la plataforma al estirar los brazos".</div>`}
+    <textarea class="inp" id="n-text" rows="2" placeholder="Qué corregir en la animación"></textarea>
+    <button class="btn" type="button" data-act="addnote">Guardar corrección</button></div>`}
+function drawSheet(remount=true){const e=S.cat.find(x=>x.id===S.cur);if(!e)return;const i=filtered().findIndex(x=>x.id===e.id),list=filtered();
+  const keep=$("#stage")?.querySelector("iframe");
+  $("#sheet").innerHTML=`<div class="sh-top"><button class="ib" type="button" data-act="close" aria-label="Cerrar">${X}</button><div class="t" id="sh-t">${esc(e.nombre)}</div>
+      <button class="ib" type="button" data-act="prev" aria-label="Anterior" ${i>0?"":"disabled"}>${L_}</button><button class="ib" type="button" data-act="next" aria-label="Siguiente" ${i>=0&&i<list.length-1?"":"disabled"}>${R_}</button></div>
+    <div class="sh-body">
+      <div class="stagebox"><div class="stage" id="stage"><span class="ld">Cargando 3D…</span></div><div class="trow"><div class="seg" role="group" aria-label="Personaje"><button type="button" data-mod="hombre" aria-pressed="${S.mod==="hombre"}">Hombre</button><button type="button" data-mod="mujer" aria-pressed="${S.mod==="mujer"}">Mujer</button></div><div class="hint" style="flex:1;min-width:0">Arrastra para girar. Pausa arriba a la derecha.</div></div></div>
+      <div class="col">
+        <div><div class="eyebrow">${esc(e.grupo)} · ${e.id}</div><h2 class="ttl">${esc(e.nombre)}</h2></div>
+        <div class="box"><h3>Músculos</h3><div class="musc">${e.musc.map(m=>`<span class="pill ${m.p?"main":"g"}">${esc(m.m)}</span>`).join("")}</div><div class="hint">En rojo, el principal. Así se iluminan en la animación.</div></div>
+        ${libBox(e)}${notesBox(e)}
+      </div></div>`;
+  if(remount||!keep)mountViewer();else $("#stage").appendChild(keep)}
+function openEx(id){S.cur=id;const sc=$("#scrim"),sh=$("#sheet");sc.hidden=false;sh.hidden=false;drawSheet();requestAnimationFrame(()=>{sc.classList.add("open");sh.classList.add("open")});document.body.style.overflow="hidden";
+  try{history.replaceState(null,"","#"+id)}catch(e){}}
+function closeSheet(){const sc=$("#scrim"),sh=$("#sheet");sc.classList.remove("open");sh.classList.remove("open");document.body.style.overflow="";S.cur=null;
+  setTimeout(()=>{if(!S.cur){sh.hidden=true;sc.hidden=true;sh.innerHTML=""}},280);try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}}
+
+/* ---------- pedir ejercicio nuevo y copiar ---------- */
+function reqSheet(){S.cur=null;const sc=$("#scrim"),sh=$("#sheet");sc.hidden=false;sh.hidden=false;
+  sh.innerHTML=`<div class="sh-top"><button class="ib" type="button" data-act="close" aria-label="Cerrar">${X}</button><div class="t" id="sh-t">Pedir ejercicio nuevo</div></div>
+    <div class="sh-body" style="grid-template-columns:1fr;max-width:640px"><div class="col">
+      <div class="box"><h3>Ejercicio nuevo para el 3D</h3>
+      <div class="form"><label class="f full">Nombre<input class="inp" id="r-name" placeholder="Ej. Remo con mancuerna a una mano en banco"></label>
+      <label class="f full">Cómo se hace y con qué equipo<textarea class="inp" id="r-text" rows="4" placeholder="Rodilla y mano en el banco, espalda plana; jala la mancuerna hacia la cadera con el codo pegado."></textarea></label></div>
+      <div class="hint">Si tienes video o foto, mándalo en el chat junto con lo que copies.</div>
+      <button class="btn primary" type="button" data-act="addreq">Guardar pedido</button></div>
+      ${(()=>{const r=S.notes.filter(n=>!n.ex);return r.length?`<div class="box"><h3>Pedidos</h3><div class="notes">${r.sort((a,b)=>a.done-b.done||b.at-a.at).map(n=>`<div class="note ${n.done?"done":""}"><input type="checkbox" data-done="${n.id}" ${n.done?"checked":""} aria-label="Marcar como hecho"><div class="tx"><b>${esc(n.name||"")}</b> ${esc(n.text)}<small>${fmtD(n.at)}${n.done?" · hecho":""}</small></div><button class="del" type="button" data-del="${n.id}">Borrar</button></div>`).join("")}</div></div>`:""})()}
+    </div></div>`;
+  requestAnimationFrame(()=>{sc.classList.add("open");sh.classList.add("open")});document.body.style.overflow="hidden"}
+function pendingText(){const p=S.notes.filter(n=>!n.done);const byEx=p.filter(n=>n.ex),reqs=p.filter(n=>!n.ex);let t="Biblioteca 3D · pendientes\n";
+  if(byEx.length){t+="\nCorrecciones:\n";const ids=[...new Set(byEx.map(n=>n.ex))];ids.forEach(id=>{const e=S.cat.find(x=>x.id===id);t+=`- ${e?e.nombre:id} (${id}):\n`;byEx.filter(n=>n.ex===id).forEach(n=>t+=`    · ${n.text}\n`)})}
+  if(reqs.length){t+="\nEjercicios nuevos:\n";reqs.forEach(n=>t+=`- ${n.name||"Sin nombre"}: ${n.text}\n`)}
+  return t}
+async function copyPending(){const t=pendingText();try{await navigator.clipboard.writeText(t);toast("Copiado. Pégalo en el chat con Claude.")}
+  catch(e){const sc=$("#scrim"),sh=$("#sheet");S.cur=null;sc.hidden=false;sh.hidden=false;
+    sh.innerHTML=`<div class="sh-top"><button class="ib" type="button" data-act="close" aria-label="Cerrar">${X}</button><div class="t" id="sh-t">Pendientes</div></div><div class="sh-body" style="grid-template-columns:1fr"><div class="box"><div class="hint">Tu navegador no dejó copiar solo. Selecciona el texto y cópialo.</div><textarea class="inp copyout" id="cp-out" readonly>${esc(t)}</textarea></div></div>`;
+    requestAnimationFrame(()=>{sc.classList.add("open");sh.classList.add("open");const o=$("#cp-out");o.focus();o.select()})}}
+
+/* ---------- eventos ---------- */
+document.addEventListener("click",async ev=>{const t=ev.target.closest("button,[data-act],input[type=checkbox]");if(!t)return;
+  if(t.dataset.g){S.g=t.dataset.g;drawAll();return}
+  if(t.dataset.mod){S.mod=t.dataset.mod;try{localStorage.setItem("bib3d-mod",S.mod)}catch(e){}document.querySelectorAll("[data-mod]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mod===S.mod));if(S.cur)mountViewer();return}
+  if(t.dataset.ex){openEx(t.dataset.ex);return}
+  if(t.id==="newreq")return reqSheet();
+  if(t.id==="copyall")return copyPending();
+  if(t.dataset.done){const n=S.notes.find(x=>x.id===t.dataset.done);if(n){n.done=t.checked;await saveNotes();drawGrid();S.cur?drawSheet(false):reqSheet()}return}
+  if(t.dataset.del){S.notes=S.notes.filter(x=>x.id!==t.dataset.del);await saveNotes();drawGrid();S.cur?drawSheet(false):reqSheet();return}
+  const a=t.dataset.act;if(!a)return;
+  if(a==="close"||t===$("#scrim"))return closeSheet();
+  if(a==="prev"||a==="next"){const l=filtered(),i=l.findIndex(x=>x.id===S.cur),j=i+(a==="next"?1:-1);if(l[j]){S.cur=l[j].id;drawSheet();$("#sheet").scrollTop=0;try{history.replaceState(null,"","#"+S.cur)}catch(e){}}return}
+  if(a==="login"){try{await S.fb.auth.google()}catch(e){toast("No se pudo entrar: "+(e?.code||"intenta de nuevo"))}return}
+  if(a==="logout"){await S.fb.auth.out();return}
+  if(a==="addnote"){const v=$("#n-text").value.trim();if(!v){$("#n-text").focus();return}
+    S.notes.push({id:"n"+Date.now().toString(36),ex:S.cur,text:v,at:Date.now(),done:false});if(await saveNotes()){toast("Corrección guardada");drawGrid();drawSheet(false)}return}
+  if(a==="addreq"){const nm=$("#r-name").value.trim(),v=$("#r-text").value.trim();if(!nm&&!v){$("#r-name").focus();return}
+    S.notes.push({id:"n"+Date.now().toString(36),ex:null,name:nm,text:v,at:Date.now(),done:false});if(await saveNotes()){toast("Pedido guardado");drawGrid();reqSheet()}return}
+  if(a==="savelib"){const e=S.cat.find(x=>x.id===S.cur),L=libOf(e.id);t.disabled=true;
+    const d={name:$("#l-name").value.trim()||e.nombre,group:$("#l-group").value,pattern:$("#l-pat").value,sets:$("#l-sets").value.trim()||"3",reps:$("#l-reps").value.trim()||"10-12",rest:$("#l-rest").value.trim()||"90",notes:$("#l-notes").value.trim(),img:"anim:"+e.id};
+    const id=L?L.id:(e.lib.libId&&!S.lib[e.lib.libId]?e.lib.libId:"l_"+e.id.replace(/-/g,"_"));
+    try{const r=S.db.doc("library/"+id);await (L?r.update(d):r.set({...d,media:""}));toast(L?"Cambios guardados":"Agregado a tu biblioteca")}
+    catch(err){toast("No se guardó: "+(err?.code||err?.message||"error"))}t.disabled=false;return}
+});
+document.addEventListener("click",e=>{if(e.target===$("#scrim"))closeSheet()});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#sheet").hidden)closeSheet()});
+$("#q").addEventListener("input",e=>{S.q=e.target.value;drawGrid()});
+$("#st").addEventListener("change",e=>{S.st=e.target.value;drawGrid()});
+document.querySelectorAll("[data-mod]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mod===S.mod));
+
+/* ---------- arranque ---------- */
+function openFromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h&&S.cat.some(e=>e.id===h))openEx(h)}
+async function boot(){
+  if(ART){S.cat=ART.cat.ejercicios;S.pats=ART.cat.patrones;loadLocalNotes();$("#who").innerHTML=`<span class="pill g">Vista sin conexión a tu cuenta</span>`;drawAll();openFromHash();return}
+  try{const r=await fetch("../anim/catalogo.json",{cache:"no-cache"});const c=await r.json();S.cat=c.ejercicios;S.pats=c.patrones}catch(e){$("#sum").textContent="No pude cargar el catálogo. Revisa tu internet y recarga.";return}
+  loadLocalNotes();drawAll();openFromHash();
+  const fb=window.__fbApi||await (window.FBready||new Promise(r=>window.__fbResolve=r));S.fb=fb;
+  if(!fb?.configured){$("#who").innerHTML=`<span class="pill g">Sin conexión a tu cuenta</span>`;return}
+  let unsub=[];
+  fb.auth.onUser(async u=>{unsub.forEach(f=>{try{f()}catch(e){}});unsub=[];S.user=u;S.trainer=false;S.db=null;S.lib={};
+    if(!u||u.isAnonymous){$("#who").innerHTML=`<button class="btn" type="button" data-act="login">Entrar con Google</button>`;loadLocalNotes();drawAll();return}
+    try{const t=await fb.db.doc("meta/trainer").get();S.trainer=!!t&&t.uid===u.uid}catch(e){S.trainer=false}
+    if(!S.trainer){$("#who").innerHTML=`<span class="pill warn">Esta cuenta no es la del entrenador</span><button class="btn ghost" type="button" data-act="logout">Salir</button>`;drawAll();return}
+    S.db=fb.db;$("#who").innerHTML=`<a class="btn" href="../entrenador/">Volver a Tempo</a>`;
+    unsub.push(fb.db.collection("library").onSnapshot(s=>{S.lib={};s.docs.forEach(d=>S.lib[d.id]={id:d.id,...d.data()});drawAll()}));
+    unsub.push(fb.db.doc("privnotes/_anim3d").onSnapshot(d=>{
+      const local=(()=>{try{return JSON.parse(localStorage.getItem("bib3d-notas")||"[]")}catch(e){return[]}})();
+      S.notes=d?.items||[];if(local.length){const ids=new Set(S.notes.map(n=>n.id));const add=local.filter(n=>!ids.has(n.id));if(add.length){S.notes.push(...add);saveNotes()}try{localStorage.removeItem("bib3d-notas")}catch(e){}}
+      drawAll()}));
+  });
+}
+boot();
+</script>
+<script type="module">if(!window.__ART)import("../shared/fb.js")</script>
+<script>if(!window.__ART&&"serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));</script>
+</body></html>
