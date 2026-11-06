@@ -1456,7 +1456,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 75</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 76</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }
@@ -2156,7 +2156,7 @@ const PLATES=[45,35,25,10,5,2.5];
 const PL={45:{c:"var(--p45)",t:"#fff",w:17,h:96,b:58},35:{c:"var(--p35)",t:"#1a1a1a",w:15,h:86,b:54},25:{c:"var(--p25)",t:"#fff",w:13,h:74,b:50},
   10:{c:"var(--p10)",t:"#fff",w:10,h:56,b:44},5:{c:"var(--p5)",t:"#fff",w:8,h:44,b:40},2.5:{c:"var(--p2)",t:"#1a1a1a",w:7,h:34,b:36}};
 const BARS=[[45,"Barra 45"],[35,"Barra 35"],[25,"Barra Z 25"],[0,"Sin barra"]];
-function libMatch(e){const k=exKey(e?.name);return k?Object.values(S.library).find(x=>exKey(x.name)===k):null}
+function libMatch(e){const k=exKey(e?.name),im=String(e?.img||"");return (k&&Object.values(S.library).find(x=>exKey(x.name)===k))||(im.startsWith("anim:")?Object.values(S.library).find(x=>x.img===im):null)||null}
 function loadFor(e){if(e?.load!==undefined)return e.load||"";return libMatch(e)?.load||""}
 function barFor(e,ld){ld=ld||loadFor(e);if(NO_BAR(ld))return 0;const v=e?.bar!=null&&e.bar!==""?e.bar:libMatch(e)?.bar;if(v!=null&&v!=="")return num(v);return(ld||loadFor(e))==="plates2"?45:0}
 function multOf(e){return e.load==="plates1"?1:2}
@@ -2266,7 +2266,8 @@ function totalBoxHTML(p,ei){const t=plateTotal(p,ei);
     <input type="hidden" id="in-w" value="${t}"></div>`}
 function redrawKeep(){const r=$("#in-reps")?.value;drawPlayer();if(r!=null&&$("#in-reps"))$("#in-reps").value=r}
 
-function prepEx(ex){ex.forEach(e=>{if(e.equip===undefined){const L=libMatch(e);e.equip=L?.equip||"";e.uni=!!L?.uni;e.barType=L?.barType||""}const ld=loadFor(e);
+function prepEx(ex){ex.forEach(e=>{if(!num(e.maxW)){const L=libMatch(e);if(num(L?.maxW))e.maxW=L.maxW}   // v76: el máximo de la máquina también sale de tu biblioteca
+    if(e.equip===undefined){const L=libMatch(e);e.equip=L?.equip||"";e.uni=!!L?.uni;e.barType=L?.barType||""}const ld=loadFor(e);
     if(ld){const t=num(firstNum(e.weight));e.bar=barFor(e,ld);e.load=ld;if(t)e.weight=String(Math.round(t))}else e.load="";e.unit="lb"});return ex}
 function routineSig(d){return JSON.stringify((d?.exercises||[]).map(e=>[e.name,e.sets,e.reps,e.weight,e.rest,e.ss,e.load,e.bar,e.equip,e.uni,e.barType,e.notes,e.img,e.noImg,e.plates||[],e.progAt||"",e.progInc||"",!!e.progOff,e.maxW||"",e.tWork||"",e.tRest||""]))}
 /* firma "suelta" para comparar la rutina guardada con la sesión que vino del cliente (en vivo los números viajan sin formato) */
@@ -2274,11 +2275,11 @@ function looseSig(exs){return JSON.stringify((exs||[]).map(e=>[exKey(e.name),set
 function mergeSession(p,newEx){
   const old=p.exercises,used=new Set(),map={};
   newEx.forEach((e,ni)=>{const oi=old.findIndex((o,i)=>!used.has(i)&&exKey(o.name)===exKey(e.name));if(oi>=0){used.add(oi);map[oi]=ni}});
-  const cur=step(p);const res=newEx.map(e=>Array(setsOf(e)).fill(null)),plates={},bars={},skipped={},sskip={};
+  const cur=step(p);const res=newEx.map(e=>Array(setsOf(e)).fill(null)),plates={},bars={},skipped={},sskip={},xp={};
   Object.entries(map).forEach(([oi,ni])=>{oi=+oi;(p.results[oi]||[]).forEach((r,si)=>{if(r&&si<res[ni].length)res[ni][si]=r});
-    if(p.plates?.[oi])plates[ni]=p.plates[oi];if(p.bars?.[oi]!=null)bars[ni]=p.bars[oi];if(p.skipped?.[oi])skipped[ni]=true;
+    if(p.plates?.[oi])plates[ni]=p.plates[oi];if(p.bars?.[oi]!=null)bars[ni]=p.bars[oi];if(p.xp?.[oi]!==undefined)xp[ni]=p.xp[oi];if(p.skipped?.[oi])skipped[ni]=true;
     Object.keys(p.sskip||{}).forEach(k=>{const[a,b]=k.split("-").map(Number);if(a===oi&&b<res[ni].length)sskip[ni+"-"+b]=true})});
-  p.exercises=newEx;p.results=res;p.plates=plates;p.bars=bars;p.skipped=skipped;p.sskip=sskip;p.plan=buildPlan(newEx);p.draft=null;
+  p.exercises=newEx;p.results=res;p.plates=plates;p.bars=bars;p.xp=xp;p.skipped=skipped;p.sskip=sskip;p.plan=buildPlan(newEx);p.draft=null;
   const nci=cur&&map[cur.ei];let k=nci!=null?p.plan.findIndex(s=>s.ei===nci&&s.si===cur.si):-1;
   if(k<0||!pendingK(p,k))k=frontierK(p);
   if(k<0){if(p.phase!=="energy")p.phase="done";p.k=Math.max(0,p.plan.length-1)}else{p.k=k;if(p.phase==="done")p.phase="set"}}

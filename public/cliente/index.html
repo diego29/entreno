@@ -1479,7 +1479,7 @@ const animSrc=id=>(id==="elevacion-frontal-polea"?"../anim/visor.html":"../anim/
 const animBg=id=>/^[a-z0-9-]+$/.test(id)?`background:#15181E url(../anim/posters/${id}.svg) center/cover no-repeat`:"background:#15181E";
 function animFrame(id,name){const mo=CLIENT&&CLIENT.anim==="mujer"?"mujer":"hombre";return `<iframe class="anim3d" loading="lazy" style="${animBg(id)}" src="${animSrc(id)}&modelo=${mo}&compact=1" title="Técnica 3D: ${esc(name||"")}"></iframe>`}
 /* el máximo de la máquina se toma de la biblioteca si la rutina no lo trae */
-function xfLib(e){const L=Object.values(LIB).find(x=>exKey(x.name)===exKey(e.name));return{...(L&&L.maxW?{maxW:L.maxW}:{}),...xf(e)}}
+function xfLib(e){const im=String(e.img||libImgRef(e.name)||"");const L=Object.values(LIB).find(x=>exKey(x.name)===exKey(e.name))||(im.startsWith("anim:")?Object.values(LIB).find(x=>x.img===im&&num(x.maxW)):null);return{...(L&&L.maxW?{maxW:L.maxW}:{}),...xf(e)}}
 function libImgRef(name){const k=exKey(name);return Object.values(LIB).find(x=>exKey(x.name)===k&&x.img)?.img||""}
 function libImg(name){return resolveImg(libImgRef(name))}
 function effRoutineC(c){const r=c.routine||{},m=c.moves;if(!m||m.week!==iso(monday)||!m.map)return r;const o={};
@@ -1494,10 +1494,10 @@ let CLIENT=null;
 function exSig(ex){return JSON.stringify((ex||[]).map(e=>[e.name,e.sets,e.reps,e.weight,e.rest,e.ss,e.load,e.bar,e.equip,e.uni,e.barType,e.notes,e.imgRef,xf(e)]))}
 function mergeP(newEx){const old=P.ex,used=new Set(),map={};
   newEx.forEach((e,ni)=>{const oi=old.findIndex((o,i)=>!used.has(i)&&exKey(o.name)===exKey(e.name));if(oi>=0){used.add(oi);map[oi]=ni}});
-  const cur=stepNow();const res=newEx.map(e=>Array(e.sets).fill(null)),plates={},bars={},skip={},sskip={};
-  Object.entries(map).forEach(([oi,ni])=>{oi=+oi;(P.res[oi]||[]).forEach((r,si)=>{if(r&&si<res[ni].length)res[ni][si]=r});if(P.plates?.[oi])plates[ni]=P.plates[oi];if(P.bars?.[oi]!=null)bars[ni]=P.bars[oi];if(P.skip?.[oi])skip[ni]=true;
+  const cur=stepNow();const res=newEx.map(e=>Array(e.sets).fill(null)),plates={},bars={},skip={},sskip={},xp={};
+  Object.entries(map).forEach(([oi,ni])=>{oi=+oi;(P.res[oi]||[]).forEach((r,si)=>{if(r&&si<res[ni].length)res[ni][si]=r});if(P.plates?.[oi])plates[ni]=P.plates[oi];if(P.bars?.[oi]!=null)bars[ni]=P.bars[oi];if(P.xp?.[oi]!==undefined)xp[ni]=P.xp[oi];if(P.skip?.[oi])skip[ni]=true;
     Object.keys(P.sskip||{}).forEach(k=>{const[a,b]=k.split("-").map(Number);if(a===oi&&b<res[ni].length)sskip[ni+"-"+b]=true})});
-  P.ex=newEx;P.res=res;P.plates=plates;P.bars=bars;P.skip=skip;P.sskip=sskip;P.plan=buildPlan(newEx);P.draft=null;
+  P.ex=newEx;P.res=res;P.plates=plates;P.bars=bars;P.xp=xp;P.skip=skip;P.sskip=sskip;P.plan=buildPlan(newEx);P.draft=null;
   const nci=cur&&map[cur.ei];let k=nci!=null?P.plan.findIndex(x=>x.ei===nci&&x.si===cur.si):-1;if(k<0||!pendingK(k))k=frontierK();
   if(k<0){if(P.phase!=="energy"&&P.phase!=="done"&&P.phase!=="cardio")setsOver();P.i=Math.max(0,P.plan.length-1)}else{P.i=k;if(P.phase==="done"||P.phase==="cardio")P.phase="set"}}
 function syncP(){if(!P||!WEEK[P.k]||P.phase==="done")return;const ex=structuredClone(WEEK[P.k].ex);const sig=exSig(ex);if(P.srcSig===undefined){P.srcSig=sig;return}if(sig===P.srcSig)return;
