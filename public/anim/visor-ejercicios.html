@@ -2002,6 +2002,35 @@ Object.assign(EX,{
     cable:{dist:1.55,y:Sw=>Sw.y+.08},place:placeFRow,
     cam:{t:V(0,.95,.45),yaw:-2.1,pitch:.18,dist:4.6}}
 });
+// v72: remo abierto sentado en polea baja con dos agarres D de correa larga (mismo banco y plataforma del face pull sentado)
+const DHM=new THREE.MeshStandardMaterial({color:0x111214,roughness:.9});
+const dh=[0,1].map(()=>({grip:mk(CY(.019,.13,18),MP,EQ.cable),capA:mk(CY(.026,.012,18),DHM,EQ.cable),capB:mk(CY(.026,.012,18),DHM,EQ.cable),
+  sA:mk(B(.032,1,.012),DHM,EQ.cable),sB:mk(B(.032,1,.012),DHM,EQ.cable),ring:mk(new THREE.TorusGeometry(.016,.004,10,22),M.metal,EQ.cable)}));
+const dhClip=mk(new THREE.TorusGeometry(.022,.005,10,24),M.metal,EQ.cable);
+function strap(m,a,b,n){const d=b.clone().sub(a),L=d.length();m.position.copy(a).addScaledVector(d,.5);m.scale.set(1,L,1);
+  const y=d.normalize(),x=n.clone().cross(y).normalize(),z=x.clone().cross(y);m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z))}
+function dhShow(v){dh.forEach(o=>Object.values(o).forEach(m=>m.visible=v));dhClip.visible=v}
+dhShow(false);
+Object.assign(EX,{
+  'remo-abierto-polea-sentado':{nombre:'Remo abierto sentado en polea con agarres D largos',grupo:'Espalda',equip:'cable',show:['cable','frow'],musc:{espalda:1,dorsal:.6,deltPost:.7},
+    body:{rx:-6,seat:.46},
+    leg:sd=>({ankle:V(sd*.15,.26,FRW?FRW.fz-.05:.9),floor:'abs',up:V(0,.42,-.9),fwd:V(sd*.1,.9,.42),pole:V(sd*.2,1,.2)}),
+    arm:{pole:sd=>V(sd,-.1,-.8),ext:5,curl:[45,75,50],axis:sd=>V(sd,0,0),palm:sd=>V(0,-1,0)},
+    cable:{dist:1.6,y:()=>.5},place:placeFRow,clear:.06,
+    hand:(s,sd,p)=>{const S=C.rest[s+'Arm'].p,sx=Math.abs(S.x),r=.94*(C.L.arm+C.L.fore);
+      const b0=V(sd*(sx+.02),S.y-.2,0);b0.z=S.z+Math.sqrt(Math.max(.01,r*r-Math.pow(b0.x-S.x,2)-.04));   // brazos estirados al frente, agarre abierto
+      const t=V(sd*(sx+.17),S.y-.13,C.met.chestZ-.02);   // manos a los lados de la parte baja del pecho, codos abiertos y atrás
+      return b0.lerp(t,p)},
+    after:(p,gw,grips)=>{cb.ropes.forEach(r=>r.visible=false);cb.ends.forEach(r=>r.visible=false);cb.sleeve.visible=false;cb.clip.visible=false;dhShow(true);
+      const a=gw('Right'),b=gw('Left'),m=a.clone().add(b).multiplyScalar(.5),dir=CB.P.clone().sub(m).normalize(),clip=m.clone().addScaledVector(dir,.4);
+      dhClip.position.copy(clip);dhClip.lookAt(CB.P);between(cb.cab,clip.clone().addScaledVector(dir,.02),CB.P);
+      [['Right',a],['Left',b]].forEach(([s,g],i)=>{const o=dh[i];const ax=grips[s].ax.clone().applyQuaternion(G.quaternion).normalize();   // el agarre sigue la orientación de la mano
+        o.grip.position.copy(g);alignY(o.grip,ax);const e1=g.clone().addScaledVector(ax,.07),e2=g.clone().addScaledVector(ax,-.07);
+        o.capA.position.copy(e1);alignY(o.capA,ax);o.capB.position.copy(e2);alignY(o.capB,ax);
+        const ring=clip.clone().addScaledVector(clip.clone().sub(g).normalize(),-.03);o.ring.position.copy(ring);o.ring.lookAt(g);
+        const n=e1.clone().sub(ring).cross(e2.clone().sub(ring)).normalize();strap(o.sA,ring,e1,n);strap(o.sB,ring,e2,n)})},
+    cam:{t:V(0,.85,.45),yaw:-2.35,pitch:.2,dist:3.6}}
+});
 let exId='press-pecho-maquina',ex=EX[exId];
 
 function placeBody(){
