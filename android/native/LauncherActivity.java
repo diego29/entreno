@@ -44,11 +44,15 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
         }
     }
 
+    private String versionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; }
+    }
+
     @Override
     protected Uri getLaunchingUrl() {
         Uri uri = super.getLaunchingUrl();
         if (uri == null) return null;
-        Uri.Builder b = uri.buildUpon().appendQueryParameter("apk", BuildConfig.VERSION_NAME);
+        Uri.Builder b = uri.buildUpon().appendQueryParameter("apk", versionName());
         String tok = PushService.token(this);
         if (!tok.isEmpty()) b.appendQueryParameter("fcm", tok);
         else b.appendQueryParameter("fcmerr", PushService.error(this));
