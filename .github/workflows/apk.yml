@@ -38,9 +38,9 @@ jobs:
             echo "$KS_B64" | base64 -d > tempo.keystore
             echo "SIGNED=1" >> $GITHUB_ENV
           else
-            echo "::warning::Faltan los secrets ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASS: armo un APK de prueba con una llave temporal (se verá con barra de dirección)."
+            echo "::warning::Faltan los secrets ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASS: armo el APK de prueba con la llave de prueba (se verá con barra de dirección)."
             KS_PASS=prueba123
-            keytool -genkeypair -keystore tempo.keystore -storetype PKCS12 -alias tempo -keyalg RSA -keysize 2048 -validity 365 -storepass $KS_PASS -keypass $KS_PASS -dname "CN=Prueba"
+            cp prueba.keystore tempo.keystore
             echo "KS_PASS=$KS_PASS" >> $GITHUB_ENV
             echo "SIGNED=0" >> $GITHUB_ENV
           fi
@@ -63,8 +63,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: tempo-apk, path: android/tempo.apk }
       - name: Publicar en Releases
-        if: env.SIGNED == '1'
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          gh release delete tempo-apk -y --cleanup-tag 2>/dev/null || true
-          gh release create tempo-apk android/tempo.apk -t "Tempo para Android" -n "APK de Tempo, versión $(jq -r .appVersionName android/twa-manifest.json). Instálalo en tu Android (permite instalar apps de origen desconocido)." --latest
+          if [ "$SIGNED" = "1" ]; then TAG=tempo-apk; T="Tempo para Android"; X=--latest; else TAG=tempo-apk-prueba; T="Tempo para Android (prueba)"; X=--prerelease; fi
+          gh release delete $TAG -y --cleanup-tag 2>/dev/null || true
+          gh release create $TAG android/tempo.apk -t "$T" -n "APK de Tempo, versión $(jq -r .appVersionName android/twa-manifest.json). En Android permite instalar apps de origen desconocido." $X
