@@ -1,0 +1,7 @@
+android/tempo.keystore
+android/app/
+android/build/
+android/.gradle/
+android/*.apk
+android/*.aab
+android/*.idsig

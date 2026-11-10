@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.entreno.tempo",
+    "sha256_cert_fingerprints": ["E4:81:A3:89:CC:DF:81:E4:1F:3D:5E:2B:1A:3C:78:C9:40:8B:52:E5:F2:C4:D9:1C:D5:21:1F:59:9F:D7:36:11"]
+  }
+}]
