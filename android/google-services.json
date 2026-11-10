@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "215023110351",
+    "project_id": "entreno-f0df7",
+    "storage_bucket": "entreno-f0df7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215023110351:android:02c950d080a6db22ae0fba",
+        "android_client_info": {
+          "package_name": "com.entreno.tempo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "215023110351-0iib7pf0q7samlfop2v5kjtsmudulgm1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4qEULfR2eaBOZC35Klt_iVlBdc35BVTw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "215023110351-0iib7pf0q7samlfop2v5kjtsmudulgm1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
