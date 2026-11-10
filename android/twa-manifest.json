@@ -30,6 +30,6 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://entreno.d13g0manuel.workers.dev/",
-  "minSdkVersion": 21,
+  "minSdkVersion": 24,
   "retainedBundles": []
 }
