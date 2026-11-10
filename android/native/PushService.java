@@ -35,6 +35,15 @@ public class PushService extends FirebaseMessagingService {
         if (t != null) c.getSharedPreferences("push", MODE_PRIVATE).edit().putString("token", t).apply();
     }
 
+    static void saveError(Context c, String e) {
+        c.getSharedPreferences("push", MODE_PRIVATE).edit().putString("error", e == null ? "" : e.substring(0, Math.min(120, e.length()))).apply();
+    }
+
+    static String error(Context c) {
+        String e = c.getSharedPreferences("push", MODE_PRIVATE).getString("error", "");
+        return e.isEmpty() ? "sin token todavía" : e;
+    }
+
     static String token(Context c) {
         return c.getSharedPreferences("push", MODE_PRIVATE).getString("token", "");
     }

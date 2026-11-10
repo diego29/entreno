@@ -33,7 +33,7 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
         try {
             FirebaseMessaging.getInstance().getToken()
                 .addOnSuccessListener(t -> { PushService.saveToken(this, t); if (waiting) launchOnce(); })
-                .addOnFailureListener(e -> { if (waiting) launchOnce(); });
+                .addOnFailureListener(e -> { PushService.saveError(this, String.valueOf(e.getMessage())); if (waiting) launchOnce(); });
         } catch (Exception e) { if (waiting) new android.os.Handler(android.os.Looper.getMainLooper()).post(this::launchOnce); }
         if (waiting) new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::launchOnce, 4000);
         super.onCreate(savedInstanceState);
@@ -47,8 +47,11 @@ public class LauncherActivity extends com.google.androidbrowserhelper.trusted.La
     @Override
     protected Uri getLaunchingUrl() {
         Uri uri = super.getLaunchingUrl();
+        if (uri == null) return null;
+        Uri.Builder b = uri.buildUpon().appendQueryParameter("apk", BuildConfig.VERSION_NAME);
         String tok = PushService.token(this);
-        if (uri != null && !tok.isEmpty()) uri = uri.buildUpon().appendQueryParameter("fcm", tok).build();
-        return uri;
+        if (!tok.isEmpty()) b.appendQueryParameter("fcm", tok);
+        else b.appendQueryParameter("fcmerr", PushService.error(this));
+        return b.build();
     }
 }

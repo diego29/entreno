@@ -97,7 +97,11 @@ async function start() {
       if (t) { localStorage.setItem("entreno-native-fcm", t); u.searchParams.delete("fcm"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); }
       return localStorage.getItem("entreno-native-fcm") || ""; } catch (e) { return ""; } })();
   // ¿Se abrió desde el APK? Android lo marca en document.referrer la primera vez que carga.
-  const APK = (() => { try { if (/^android-app:\/\/com\.entreno\./.test(document.referrer)) sessionStorage.setItem("entreno-apk", "1"); return sessionStorage.getItem("entreno-apk") === "1"; } catch (e) { return false; } })();
+  // El APK se anuncia con ?apk=VERSION (y ?fcmerr=... si Android no le dio token). Se guarda para el diagnóstico.
+  const APK = (() => { try { const u = new URL(location.href), v = u.searchParams.get("apk"), er = u.searchParams.get("fcmerr");
+      if (v) { localStorage.setItem("entreno-apk", v); localStorage.setItem("entreno-apk-err", er || ""); u.searchParams.delete("apk"); u.searchParams.delete("fcmerr"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); }
+      else if (/^android-app:\/\/com\.entreno\./.test(document.referrer) && !localStorage.getItem("entreno-apk")) localStorage.setItem("entreno-apk", "1.0/1.1");
+      return localStorage.getItem("entreno-apk") || ""; } catch (e) { return ""; } })();
   const token = async () => {
     if (NATIVE) return NATIVE;
     M = M || await import(base + "firebase-messaging.js");
@@ -158,8 +162,10 @@ async function start() {
       try { reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, j) => setTimeout(() => j(new Error("tiempo agotado")), 6000))]); add(!!reg?.active, "Service worker", reg?.active ? "activo · " + new URL(reg.scope).pathname : "sin activar"); }
       catch (e) { add(false, "Service worker", String(e.message || e)); return out; }
       let t = "";
-      if (APK && !NATIVE) add(false, "App de Android", "todavía sin token nativo: cierra Tempo por completo (quítala de recientes) y ábrela otra vez");
-      else if (APK || NATIVE) add(true, "App de Android", "avisos nativos activos");
+      { let er = ""; try { er = localStorage.getItem("entreno-apk-err") || ""; } catch (e) {}
+        if (APK && !NATIVE) add(false, "App de Android " + APK, "sin token nativo" + (er ? " · " + er : "") + ". Ajustes → Apps → Tempo → Forzar detención y ábrela otra vez");
+        else if (APK || NATIVE) add(true, "App de Android " + APK, "avisos nativos activos");
+        else add(true, "App de Android", "no: estás en Chrome o en la app instalada desde Chrome"); }
       try { t = await token(); add(!!t, NATIVE ? "Token nativo (app de Android)" : "Token de Firebase", t ? "…" + t.slice(-8) : "vacío"); } catch (e) { add(false, "Token de Firebase", (e?.code || "") + " " + (e?.message || "")); return out; }
       if (!NATIVE) try { const s = await reg.pushManager.getSubscription(); add(!!s, "Suscripción push", s ? new URL(s.endpoint).hostname : "no existe"); } catch (e) { add(false, "Suscripción push", String(e.message || e)); }
       try { await saveToken(owner, t); add(true, "Guardado en la base", `push/${owner}/devices/${devId()}`); } catch (e) { add(false, "Guardado en la base", (e?.code || "") + " " + (e?.message || "")); }
