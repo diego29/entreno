@@ -96,6 +96,8 @@ async function start() {
   const NATIVE = (() => { try { const u = new URL(location.href), t = u.searchParams.get("fcm");
       if (t) { localStorage.setItem("entreno-native-fcm", t); u.searchParams.delete("fcm"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); }
       return localStorage.getItem("entreno-native-fcm") || ""; } catch (e) { return ""; } })();
+  // ¿Se abrió desde el APK? Android lo marca en document.referrer la primera vez que carga.
+  const APK = (() => { try { if (/^android-app:\/\/com\.entreno\./.test(document.referrer)) sessionStorage.setItem("entreno-apk", "1"); return sessionStorage.getItem("entreno-apk") === "1"; } catch (e) { return false; } })();
   const token = async () => {
     if (NATIVE) return NATIVE;
     M = M || await import(base + "firebase-messaging.js");
@@ -156,13 +158,16 @@ async function start() {
       try { reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, j) => setTimeout(() => j(new Error("tiempo agotado")), 6000))]); add(!!reg?.active, "Service worker", reg?.active ? "activo · " + new URL(reg.scope).pathname : "sin activar"); }
       catch (e) { add(false, "Service worker", String(e.message || e)); return out; }
       let t = "";
+      if (APK && !NATIVE) add(false, "App de Android", "todavía sin token nativo: cierra Tempo por completo (quítala de recientes) y ábrela otra vez");
+      else if (APK || NATIVE) add(true, "App de Android", "avisos nativos activos");
       try { t = await token(); add(!!t, NATIVE ? "Token nativo (app de Android)" : "Token de Firebase", t ? "…" + t.slice(-8) : "vacío"); } catch (e) { add(false, "Token de Firebase", (e?.code || "") + " " + (e?.message || "")); return out; }
       if (!NATIVE) try { const s = await reg.pushManager.getSubscription(); add(!!s, "Suscripción push", s ? new URL(s.endpoint).hostname : "no existe"); } catch (e) { add(false, "Suscripción push", String(e.message || e)); }
       try { await saveToken(owner, t); add(true, "Guardado en la base", `push/${owner}/devices/${devId()}`); } catch (e) { add(false, "Guardado en la base", (e?.code || "") + " " + (e?.message || "")); }
       try { await reg.showNotification("Prueba local ✓", { body: "Si ves esto, el teléfono sí muestra avisos de esta app.", tag: "diag-local", icon: new URL("icons/" + (owner === "trainer" ? "entrenador" : "cliente") + "-192.png", reg.scope).href }); add(true, "Aviso local", "enviado: debe aparecer arriba"); }
       catch (e) { add(false, "Aviso local", String(e.message || e)); }
       if (target) { const r = await push.send({ ...target, title: "Prueba del servidor ✓", body: "Si ves esto, los avisos llegan aunque la app esté cerrada.", url: owner === "trainer" ? "entrenador/" : "cliente/", test: true });
-        add(r.ok, "Servidor (Cloudflare)", `HTTP ${r.status}${r.text ? " · " + r.text : ""}`); }
+        const none = r.ok && /"sent":0/.test(r.text || "");
+        add(r.ok && !none, "Servidor (Cloudflare)", none ? "respondió pero no envió nada (sent:0): el servidor no deja que el entrenador se mande avisos a sí mismo" : `HTTP ${r.status}${r.text ? " · " + r.text : ""}`); }
       return out;
     }
   };
