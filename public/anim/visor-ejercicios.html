@@ -1259,7 +1259,7 @@ EQ.htb=new THREE.Group();scene.add(EQ.htb);const ht={bench:mk(B(1.2,.4,.4),MP,EQ
 const htCb=()=>{const m=C.met,Sy=C.rest.RightArm.p.y;return V(0,Sy-.13,m.backZ)};
 function htAt(p){const rx=HT.r0+(HT.r1-HT.r0)*p,q=new THREE.Quaternion().setFromAxisAngle(V(1,0,0),rx*D2R),H=C.rest.Hips.p,hips=HT.E.clone().add(H.clone().sub(htCb()).applyQuaternion(q));return{rx,hips}}
 let HTA=null;
-function placeHT(){ht.bench.position.set(0,.2,HT.E.z-.2);ht.legs.forEach((l,i)=>l.position.set(i%2?.55:-.55,.015,HT.E.z-(i<2?.02:.38)));
+function placeHT(){ht.bench.position.set(0,.2,HT.E.z-.2);htBench();ht.legs.forEach((l,i)=>l.position.set(i%2?.55:-.55,.015,HT.E.z-(i<2?.02:.38)));
   const t=htAt(1);setBodyFrame(t.rx,t.hips);const J=jointW('Right'),D=legD(88);HTA=J.z+Math.sqrt(Math.max(.01,D*D-(J.y-footY())**2));placeBody()}
 const htBar=()=>{const H=C.rest.Hips.p,m=C.met;return G.localToWorld(V(0,H.y-.07,m.thighZ+.175))};
 
@@ -2033,6 +2033,352 @@ Object.assign(EX,{
 });
 let exId='press-pecho-maquina',ex=EX[exId];
 
+// ===== TORRES ABIERTAS: sustituyen a las torres de caja lisa. Marco de 4 postes, zócalo, cabezal con pantalla y polea,
+// barras guía, pila de placas con perno selector que sube y baja con la repetición, vidrio al frente. =====
+const TWU={
+  lmach:{o:()=>lm,hide:['panel'],face:[0,-1],up:p=>.16*p},
+  lat:{o:()=>lt,hide:['panel'],face:[0,-1],up:p=>.3*p},
+  lfp:{o:()=>lf,hide:['win','rods'],face:[0,-1]},
+  lext:{o:()=>le,hide:['win'],face:[1,0]},
+  scurl:{o:()=>sc,hide:['win'],face:[1,0]},
+  prea:{o:()=>pr,hide:['win'],face:[0,-1],up:p=>.15*p}};
+let TWA=[];
+function openTower(old,face,mat){const gp=old.geometry.parameters,h=gp.height,alongX=Math.abs(face[0])>.5,w=alongX?gp.depth:gp.width,d=alongX?gp.width:gp.depth;
+  const g=new THREE.Group();old.parent.add(g);g.position.set(old.position.x,old.position.y-h/2,old.position.z);g.rotation.y=Math.atan2(face[0],face[1]);old.visible=false;
+  const pt=.055,px=w/2-pt/2,pz=d/2-pt/2,hb=.2,hh=.34,T={g,h,n:14,y0:hb+.03,pit:.034,stack:[]};
+  qBX(g,mat,w+.1,.05,d+.14,0,.025,0);                                                           // placa de piso
+  mk(RB(w,hb,d),mat,g).position.set(0,hb/2+.04,0);                                              // zócalo
+  [-1,1].forEach(sx=>[-1,1].forEach(sz=>qBX(g,mat,pt,h-hb-hh+.04,pt,sx*px,(h-hh+hb)/2+.02,sz*pz)));   // 4 postes
+  mk(RB(w+.02,hh,d+.02),mat,g).position.set(0,h-hh/2,0);                                         // cabezal
+  qBX(g,M.dark,w-.12,hh-.12,.012,0,h-hh/2,d/2+.012);                                            // pantalla de instrucciones
+  [-1,0,1].forEach(i=>qBX(g,MDEC,.06,.1,.004,i*.08,h-hh/2+.02,d/2+.02));qBX(g,MDEC,w-.24,.022,.004,0,h-hh/2-.07,d/2+.02);qBX(g,MORG,.045,.026,.004,w/2-.13,h-hh/2+.07,d/2+.02);
+  qBX(g,MGLS,w-2*pt,h-hb-hh,.006,0,(h-hh+hb)/2+.04,d/2-.012);                                    // vidrio al frente
+  qBX(g,MD,w-2*pt,h-hb-hh,.01,0,(h-hh+hb)/2+.04,-(d/2-.012));                                    // cubierta trasera
+  [-1,1].forEach(sx=>qT(g,M.bar,V(sx*.075,hb,0),V(sx*.075,h-hh+.02,0),.011));                    // barras guía
+  const pw=Math.min(.27,w-2*pt-.05),pd=Math.min(.17,d-2*pt-.04);
+  for(let i=0;i<T.n;i++)T.stack.push(qBX(g,M.plate,pw,.029,pd,0,T.y0+i*T.pit,0));
+  T.top=qBX(g,mat,pw,.04,pd,0,0,0);T.pin=qBX(g,MORG,.024,.022,pd/2+.05,0,0,pd/4+.025);T.rod=mk(CY(.008,1,8),M.bar,g);
+  const pu=mk(CY(.05,.025,24),M.dark,g);pu.rotation.z=Math.PI/2;pu.position.set(0,h-hh-.03,0);
+  T.lift=up=>{const k=T.n-5;up=Math.max(0,Math.min(h-hh-.16-(T.y0+T.n*T.pit),up));T.stack.forEach((b,i)=>b.position.y=T.y0+i*T.pit+(i>=k?up:0));
+    T.top.position.y=T.y0+T.n*T.pit+.008+up;T.pin.position.y=T.y0+k*T.pit+up;between(T.rod,V(0,T.y0+T.n*T.pit+.03+up,0),V(0,h-hh-.03,0))};
+  T.lift(0);return T}
+function upgradeTowers(){TWA=[];(ex.show||[]).forEach(k=>{const c=TWU[k];if(!c)return;const o=c.o();if(!o||!o.tower)return;
+  const T=openTower(o.tower,c.face,o.tower.material);(c.hide||[]).forEach(n=>[].concat(o[n]||[]).forEach(m=>m.visible=false));
+  const os=o.stack||null;if(os)os.forEach(m=>m.visible=false);TWA.push({T,os,up:c.up})})}
+function liftTowers(p){TWA.forEach(({T,os,up})=>{let u=0;if(up)u=up(p);else if(os&&os.length>2){const n=os.length;u=os[n-1].position.y-os[0].position.y-(n-1)*(os[1].position.y-os[0].position.y)}T.lift(u)})}
+
+// banco plano de verdad para el hip thrust (antes era un bloque macizo): cojín redondeado, larguero y dos patas en "T" con tapones de hule
+let HTBq=null;
+function htBench(){if(HTBq)return;const g=HTBq=new THREE.Group();EQ.htb.add(g);g.position.copy(ht.bench.position).setY(0);ht.bench.visible=false;ht.legs.forEach(l=>l.visible=false);
+  mk(RB(1.2,.085,.38),MP,g).position.set(0,.357,0);qBX(g,M.dark,1.12,.02,.32,0,.307,0);
+  qBX(g,MFR,.98,.05,.07,0,.272,0);
+  [-1,1].forEach(sx=>{qBX(g,MFR,.07,.25,.07,sx*.43,.145,0);qBX(g,MFR,.07,.045,.5,sx*.43,.0225,0);
+    [-1,1].forEach(sz=>qBX(g,MRUB,.08,.05,.05,sx*.43,.025,sz*.25));qSQ(g,MFR,V(sx*.43,.06,0),V(sx*.25,.25,0),.045)})}
+/* ===================== HAMMER STRENGTH v2 — rehechas según fotos de referencia =====================
+   Press de hombro Iso-Lateral (132 x 152 x 185 cm reales) y Fondos sentado PL-DIP (168 x 124 x 109 cm reales).
+   Las dos se arman alrededor del cuerpo: cambia el personaje y la máquina se ajusta sola. */
+const MBLU=new THREE.MeshStandardMaterial({color:0x1d4f9e,roughness:.5});
+const qFoot=(g,x,z)=>qBX(g,M.dark,.18,.012,.15,x,.006,z);
+// cuerno para discos: tubo cromado con collarín y tapón
+const qHorn=(g,p,d,len)=>{const e=p.clone().addScaledVector(d,len);qT(g,M.bar,p,e,.025);qT(g,M.metal,p,p.clone().addScaledVector(d,.022),.043);qT(g,M.dark,e.clone().addScaledVector(d,-.012),e,.027)};
+// tubo cuadrado que sigue una curva suave (para los postes en "S")
+function qCurveSQ(g,m,pts,t,n){const sh=new THREE.Shape(),h=t/2;sh.moveTo(-h,-h);sh.lineTo(h,-h);sh.lineTo(h,h);sh.lineTo(-h,h);sh.lineTo(-h,-h);
+  return mk(new THREE.ExtrudeGeometry(sh,{steps:n,bevelEnabled:false,extrudePath:new THREE.CatmullRomCurve3(pts,false,'catmullrom',.5)}),m,g)}
+// balero de brida sobre una cara del tubo
+const qFlange=(g,x,y,z)=>{const c=mk(CY(.05,.022,20),M.dark,g);c.position.set(x,y,z);c.rotation.z=Math.PI/2;return c};
+
+/* ---- Press de hombro Hammer Strength Iso-Lateral ----
+   Poste delantero recto con 3 cuernos · poste curvo en "S" detrás · arriba, una caja rectangular inclinada por lado con el eje y sus baleros ·
+   travesaño alto que une las dos cajas por atrás · palancas rectas que cuelgan del eje hacia atrás hasta los hombros, agarre hacia adentro y
+   cuerno con disco hacia afuera (el disco sube por dentro del marco) · banco reclinado ~27° · base en "U" abierta al frente */
+function buildHSP2(){const g=EQ.mshp;while(g.children.length)g.remove(g.children[0]);SPQ.lev=[];
+  const m=MSV,R=C.rest,S=R.RightArm.p,hp=R.Hips.p,loc=(x,y,z)=>G.localToWorld(V(x,y,z)),hw=loc(hp.x,hp.y,hp.z),st=ex.body.seat,sx=Math.abs(S.x);
+  // recorrido de la mano: empieza enfrente del hombro y termina arriba con el brazo casi extendido. El pivote queda arriba y adelante de la cabeza,
+  // con palanca larga (0.76 m) como la real: el arco es más plano y la palanca nunca llega a quedar horizontal
+  const gx=sx+.13,xL=gx+.09,Sw=loc(0,S.y,S.z),A=loc(0,S.y+.115,S.z+.15),Po=V(0,Sw.y+.55,Sw.z+.45),T=V(0,Po.y,Po.z-Po.distanceTo(A));
+  const ch=T.clone().sub(A),cl=ch.length(),u=ch.clone().normalize(),n=V(0,-u.z,u.y),Rr=.76,P=A.clone().add(T).multiplyScalar(.5).addScaledVector(n,Math.sqrt(Rr*Rr-cl*cl/4));
+  const th=q=>Math.atan2(q.y-P.y,-(q.z-P.z));SP={P,Rr,gx,xL,thA:th(A),thT:th(T)};
+  const xi=xL-.1,xo=xL+.34,F=P.z+.2,yF=P.y-.076,zR=P.z-.3,yR=P.y+.114;      // caja superior: pasa por el eje, sube hacia atrás
+  const bpC=loc(0,(hp.y+S.y)/2+.12,C.met.backZ-.05),sz=hw.z+.02,zS=F-.47,zB=Math.min(bpC.z-.5,zS-.62);
+  // base en "U": largueros, travesaño bajo el asiento, travesaño trasero y espina central
+  [-1,1].forEach(sd=>{qSQ(g,m,V(sd*xo,.05,zB),V(sd*xo,.05,F+.07),.09);qFoot(g,sd*xo,zB+.03);qFoot(g,sd*xo,F+.04)});
+  qSQ(g,m,V(-xo,.05,zB),V(xo,.05,zB),.09);qSQ(g,m,V(-xo,.05,zS),V(xo,.05,zS),.09);qSQ(g,m,V(0,.05,zB),V(0,.05,zS),.09);
+  [-1,1].forEach(sd=>{const X=sd*xo,Xi=sd*xi;
+    qSQ(g,m,V(X,.05,F),V(X,yF+.03,F),.095);                                                   // poste delantero recto
+    [.34,.74,1.14].forEach(y=>qHorn(g,V(X+sd*.045,y,F),V(sd,0,0),.27));                        // cuernos para guardar discos
+    const tS=.42,yJ=yF+(yR-yF)*tS,zJ=F+(zR-F)*tS;                                              // el poste curvo remata bajo el larguero de la caja
+    qCurveSQ(g,m,[V(X,.05,zS),V(X,.36,zS-.005),V(X-sd*.03,yF*.52,zS-.15),V(X-sd*.03,yF*.74,zS-.1),V(X,yJ-.02,zJ)],.085,48);
+    // caja superior
+    qSQ(g,m,V(X,yF,F),V(X,yR,zR),.09);qSQ(g,m,V(Xi,yF,F),V(Xi,yR,zR),.09);qSQ(g,m,V(X+sd*.045,yF,F),V(Xi-sd*.045,yF,F),.09);
+    qT(g,M.bar,V(Xi-sd*.075,P.y,P.z),V(X+sd*.075,P.y,P.z),.022);                               // eje
+    [Xi-sd*.056,Xi+sd*.056,X-sd*.056,X+sd*.056].forEach(x=>qFlange(g,x,P.y,P.z));               // baleros
+    qT(g,MRUB,V(sd*xL,yF-.045,F),V(sd*xL,yF-.1,F),.032);                                       // tope de hule de la palanca
+    // palanca: en su marco local la empuñadura queda en (0,0,-Rr); el grupo gira sobre el eje
+    const L=new THREE.Group();L.position.set(sd*xL,P.y,P.z);g.add(L);SPQ.lev.push(L);
+    mk(CY(.06,.14,24),M.dark,L).rotation.z=Math.PI/2;
+    mk(B(.06,.1,Rr+.13),m,L).position.set(0,0,(.07-Rr)/2);qBX(L,M.dark,.064,.104,.014,0,0,-(Rr+.03));qBX(L,M.dark,.064,.104,.014,0,0,.1);
+    qBX(L,MBLU,.004,.062,.17,sd*.031,0,-Rr*.45);qBX(L,MDEC,.005,.02,.11,sd*.032,.004,-Rr*.45);       // etiqueta
+    qT(L,M.metal,V(sd*.03,0,-Rr),V(-sd*.045,0,-Rr),.019);qGrip(L,V(-sd*.035,0,-Rr),V(-sd*.185,0,-Rr));qT(L,M.dark,V(-sd*.185,0,-Rr),V(-sd*.195,0,-Rr),.027);
+    const hz=-(Rr-.13);qHorn(L,V(sd*.03,0,hz),V(sd,0,0),.225);qPlate(L,.225,V(sd*.1,0,hz),V(1,0,0))});
+  qSQ(g,m,V(-xo-.045,yR,zR),V(xo+.045,yR,zR),.09);                                             // travesaño alto trasero
+  // banco: asiento con columna de ajuste, respaldo largo reclinado y su soporte
+  qSQ(g,m,V(0,.05,sz+.2),V(0,st-.1,sz+.03),.085);for(let i=1;i<5;i++){const q=V(0,.05,sz+.2).lerp(V(0,st-.1,sz+.03),i/5.5);qBX(g,M.dark,.09,.016,.02,0,q.y,q.z+.03)}
+  qT(g,M.dark,V(.045,st-.2,sz+.07),V(.13,st-.2,sz+.07),.012);qT(g,MYEL,V(.12,st-.2,sz+.07),V(.15,st-.2,sz+.07),.02);
+  qBX(g,m,.34,.03,.32,0,st-.078,sz);qPD(g,.42,.085,.4,0,st-.045,sz);
+  const bp=mk(RB(.34,.84,.085),MP,g);bp.quaternion.copy(G.quaternion);bp.position.copy(bpC);
+  const bk=y=>loc(0,y,C.met.backZ-.05-.0425-.038),b2=bk(hp.y+.02),b3=bk(S.y+.14),bb=bk((hp.y+S.y)/2+.06);
+  qSQ(g,m,b2,b3,.07);qSQ(g,m,V(0,.05,Math.max(zB+.04,bb.z-.34)),bb,.085);qSQ(g,m,V(0,.05,sz-.08),b2,.075);
+  ex.cam.t=V(0,.98,(zB+F)/2+.05);
+}
+
+/* ---- Fondos sentado Hammer Strength (PL-DIP), de frente al cojín de pecho ----
+   Palanca de primer género por lado: empuñadura atrás junto a la cadera, eje enfrente a media altura, brazo delantero con cuerno y disco
+   (al empujar hacia abajo el disco sube) · torres del eje con tornapunta · cojín de pecho y rodillos sobre los muslos en una misma columna ·
+   base baja con espina central y patines */
+EQ.mdip=new THREE.Group();scene.add(EQ.mdip);
+const DPQ={lev:[],rol:[],bar:null,link:null,col:null};
+function buildDip2(){const g=EQ.mdip;while(g.children.length)g.remove(g.children[0]);DPQ.lev=[];DPQ.rol=[];
+  const m=MSV,R=C.rest,S=R.RightArm.p,hp=R.Hips.p,loc=(x,y,z)=>G.localToWorld(V(x,y,z)),hw=loc(hp.x,hp.y,hp.z),st=ex.body.seat,sx=Math.abs(S.x);
+  // recorrido de las manos igual que antes (de la axila a brazo extendido); palanca más corta para que el giro y la subida del disco se noten
+  const gx=sx+.1,reach=.95*(C.L.arm+C.L.fore);
+  const gT=loc(-gx,S.y-.3,S.z+.03).add(V(0,-.08,0)),gB=loc(-gx,S.y-reach,S.z+.03).add(V(0,-.08,0));
+  const yM=(gT.y+gB.y)/2,Rr=.66,Py=yM+.15,Pz=gT.z+Rr*Math.cos(Math.asin((Py-yM)/Rr));
+  DIP={yS:gT.y,yE:gB.y,Py,Pz,Rr,gx};
+  const X=gx+.07,ux=X+.14,sz=hw.z+.02,zB=sz-.36,zF=Pz+.5;
+  // base
+  qSQ(g,m,V(0,.045,zB),V(0,.045,Pz),.09);qSQ(g,m,V(-.36,.045,zB),V(.36,.045,zB),.09);qSQ(g,m,V(-ux-.045,.045,Pz),V(ux+.045,.045,Pz),.09);
+  [-1,1].forEach(sd=>{const U=sd*ux;
+    qSQ(g,m,V(U,.045,Pz-.5),V(U,.045,zF),.09);qFoot(g,U,Pz-.47);qFoot(g,U,zF-.03);qFoot(g,sd*.33,zB);
+    // torre del eje con tornapunta
+    qSQ(g,m,V(U,.045,Pz),V(U,Py+.06,Pz),.095);qSQ(g,m,V(U,.07,Pz-.44),V(U,Py-.13,Pz-.03),.08);
+    [U-sd*.058,U+sd*.058].forEach(x=>qFlange(g,x,Py,Pz));
+    qHorn(g,V(U+sd*.047,.3,Pz),V(sd,0,0),.24);                                                  // cuerno de almacenamiento en la torre
+    qSQ(g,m,V(sd*.36,.045,zB),V(sd*.36,.42,zB),.07);qHorn(g,V(sd*.395,.34,zB),V(sd,0,0),.24);    // y otro atrás
+    // descanso de la palanca: poste con tope de hule bajo el brazo delantero
+    const a0=Math.asin((Py-gT.y)/Rr),ry=Py-.099*Math.cos(a0)+.38*Math.sin(a0)-.039;
+    qSQ(g,m,V(U,.045,Pz+.38),V(U,ry-.04,Pz+.38),.07);qSQ(g,m,V(U,ry-.07,Pz+.38),V(sd*(X-.03),ry-.07,Pz+.38),.06);qT(g,MRUB,V(sd*X,ry-.045,Pz+.38),V(sd*X,ry,Pz+.38),.03);
+    // palanca (reposo local: empuñadura horizontal detrás del eje)
+    const L=new THREE.Group();L.position.set(sd*X,Py,Pz);g.add(L);DPQ.lev.push(L);
+    mk(CY(.058,.13,24),M.dark,L).rotation.z=Math.PI/2;
+    const K=V(0,.07,-(Rr-.24)),gl=-sd*.07,E=V(0,-.13,.5);
+    qSQ(L,m,V(0,0,.02),K,.075);qSQ(L,m,V(0,0,-.02),E,.075);qBX(L,M.dark,.08,.08,.014,0,E.y,E.z+.04);
+    qT(L,M.metal,K,V(gl,0,-(Rr-.13)),.022);qJ(L,M.metal,K,.03);qJ(L,M.metal,V(gl,0,-(Rr-.13)),.024);
+    qGrip(L,V(gl,0,-(Rr-.13)),V(gl,0,-(Rr+.12)));qT(L,M.dark,V(gl,0,-(Rr+.12)),V(gl,0,-(Rr+.13)),.028);
+    qBX(L,MBLU,.004,.05,.16,sd*.039,-.065,.25).rotation.x=Math.atan2(.13,.5);
+    qHorn(L,V(sd*.035,E.y,E.z-.02),V(sd,0,0),.27);qPlate(L,.225,V(sd*.225,E.y,E.z-.02),V(1,0,0))});
+  qT(g,M.bar,V(-ux-.08,Py,Pz),V(ux+.08,Py,Pz),.022);                                             // eje
+  // asiento
+  qSQ(g,m,V(0,.045,sz),V(0,st-.09,sz),.085);qBX(g,m,.3,.03,.3,0,st-.078,sz);qPD(g,.4,.085,.38,0,st-.045,sz);
+  qT(g,M.dark,V(.045,st-.22,sz),V(.12,st-.22,sz),.012);qT(g,MYEL,V(.11,st-.22,sz),V(.14,st-.22,sz),.02);
+  // cojín de pecho sobre una columna que nace de la espina, entre las rodillas
+  const pz=C.met.chestZ+.048,pad=mk(RB(.22,.3,.085),MP,g);pad.quaternion.copy(G.quaternion);pad.position.copy(loc(0,S.y-.13,pz));
+  const mp=mk(B(.13,.17,.03),m,g);mp.quaternion.copy(G.quaternion);mp.position.copy(loc(0,S.y-.13,pz+.055));
+  const pb=loc(0,S.y-.17,pz+.085),c0=V(0,.045,pb.z+.16);qSQ(g,m,c0,pb,.075);DPQ.col=y=>c0.clone().lerp(pb,Math.max(0,Math.min(1,(y-c0.y)/(pb.y-c0.y))));
+  // rodillos de muslo (se colocan sobre las piernas en cada cuadro)
+  DPQ.rol=[0,1].map(()=>mk(CY(.052,.17,24),MP,g));DPQ.bar=mk(CY(.018,1,12),M.bar,g);DPQ.link=mk(B(1,1,1),m,g);
+  ex.cam.t=V(0,.6,(zB+zF)/2);
+}
+function dip2After(p,gw){const gg=gw('Right'),a=Math.atan2(gg.y-DIP.Py,-(gg.z-DIP.Pz));DPQ.lev.forEach(L=>L.rotation.x=a);
+  const q=SIDES.map(([s])=>{const h=C.bones[s+'UpLeg'].getWorldPosition(V()),k=C.bones[s+'Leg'].getWorldPosition(V());return h.lerp(k,.8).add(V(0,.118,0))});
+  DPQ.rol.forEach((r,i)=>{r.position.copy(q[i]);r.rotation.set(0,0,Math.PI/2)});between(DPQ.bar,q[0],q[1]);
+  const c=q[0].clone().add(q[1]).multiplyScalar(.5),k=DPQ.col(c.y);bar3(DPQ.link,c.clone().add(V(0,0,-.03)),k.clone().add(V(0,0,.03)),.06)}
+
+Object.assign(EX,{
+  'press-hombro-maquina-hammer':{...EX['press-hombro-maquina-hammer'],body:{rx:-27,seat:.47},place:buildHSP2,after:hspAfter,cam:{t:V(0,1,0),yaw:-.62,pitch:.22,dist:4.7}},
+  'fondos-maquina-hammer':{...EX['fondos-maquina-hammer'],equip:'mdip',show:['mdip'],place:buildDip2,after:dip2After,cam:{t:V(0,.6,.3),yaw:-2.25,pitch:.3,dist:4.4}}
+});
+
+/* ===================== JALÓN NAUTILUS y REMO T — diseño v2 según fotos de referencia =====================
+   Solo cambia el aspecto. El mecanismo (ejes, palancas, recorridos, pila, apoyo de pies y de pecho) es el mismo de antes. */
+const MNAU=new THREE.MeshStandardMaterial({color:0x9aa1aa,roughness:.5,metalness:.35});   // carcasa gris de la torre
+const qTubeC=(g,m,cv,r,n)=>mk(new THREE.TubeGeometry(cv,n||48,r,12,false),m,g);
+const qRub=(g,x,z,w,d)=>qBX(g,MRUB,w||.11,.03,d||.12,x,.015,z);
+
+/* ---- Jalón Nautilus: torre con carcasa cerrada y ranura lateral por donde se ve la pila · placa de instrucciones arriba ·
+   aro tubular trasero que sale de la torre, sostiene el eje de las palancas y baja a la base · leva atrás · asiento tipo silla
+   con palanca amarilla · base con espina y travesaños con tacones de hule ---- */
+let NAUX=null;const NAUK={tip:[],knob:[]};
+function placeNau2(){placeNau();const {TF,TB,TT}=NZ,{py,pz}=NAU,k=NAU.k,st=ex.body.seat,zc=(TF+TB)/2,m=MSV;
+  if(NAUX)EQ.nau.remove(NAUX);const g=NAUX=new THREE.Group();EQ.nau.add(g);
+  // piezas del armado anterior: se ocultan las fijas y se conservan las que mueve el mecanismo
+  nau.bars.forEach((b,i)=>{if(i<k)b.visible=false;else b.material=m});[nau.shroud,nau.label,nau.seat].forEach(o=>o.visible=false);
+  nau.lev.forEach(o=>o.material=m);nau.rod.forEach(o=>o.material=M.bar);nau.dring.forEach(o=>o.material=M.bar);nau.stack.forEach(o=>o.material=M.plate);nau.topPl.material=m;
+  if(!nau.stack[11].userData.pin){nau.stack[11].userData.pin=1;const pn=mk(B(.36,.02,.024),MBLU,nau.stack[11]);pn.position.set(0,0,0)}   // perno selector (se ve por las dos ranuras)
+  // torre: carcasa de paneles con ranura vertical en cada costado
+  const W=.225,z0=TF-.035,z1=TB+.035,D=z1-z0,H=TT+.05,sw=.085,sy0=.2,sy1=1.05,t=.018,fs=(D-sw)/2;
+  qBX(g,MNAU,2*W,H,t,0,H/2,z0);qBX(g,MNAU,2*W,H,t,0,H/2,z1);
+  [-1,1].forEach(sd=>{const x=sd*W;
+    [z0+fs/2,z1-fs/2].forEach(z=>qBX(g,MNAU,t,H,fs,x,H/2,z));
+    qBX(g,MNAU,t,sy0,sw+.004,x,sy0/2,zc);qBX(g,MNAU,t,H-sy1,sw+.004,x,(H+sy1)/2,zc);
+    [zc-sw/2,zc+sw/2].forEach(z=>qBX(g,M.dark,t+.004,sy1-sy0,.008,x,(sy0+sy1)/2,z));                     // marco de la ranura
+    [z0,z1].forEach(z=>qT(g,MNAU,V(x,0,z),V(x,H,z),.024));                                               // esquinas redondeadas
+    const px=x+sd*.011;qBX(g,M.dark,.006,.26,D-.09,px,H-.2,zc);                                          // placa de instrucciones
+    [-1,0,1].forEach(i=>qBX(g,MDEC,.004,.085,.06,px+sd*.004,H-.16,zc+i*.08));qBX(g,MDEC,.004,.018,D-.2,px+sd*.004,H-.27,zc);qBX(g,MYEL,.004,.03,.05,px+sd*.004,H-.3,zc-.1);
+    qBX(g,MBLU,.004,.34,.012,x+sd*.011,.72,zc+sw/2+.07)});                                                // filete azul junto a la ranura
+  mk(RB(2*W+.05,.075,D+.05),MNAU,g).position.set(0,H,zc);qBX(g,m,2*W+.1,.05,D+.12,0,.025,zc);
+  // aro trasero por lado: sale de la espalda de la torre, pasa por el eje de las palancas y baja a la base
+  const xh=.205,zr=pz+.24;let camZ=pz+.2;
+  [-1,1].forEach(sd=>{const x=sd*xh,cv=new THREE.CatmullRomCurve3([V(x,TT-.55,z1-.02),V(x,TT-.3,z1+.12),V(x,py+.07,(z1+pz)/2),V(x,py,pz),V(x,py-.32,pz+.17),V(x,.42,zr+.01),V(x,.05,zr)],false,'catmullrom',.5);
+    qTubeC(g,m,cv,.036,56);const pts=cv.getPoints(80);let b=pts[60];pts.slice(45).forEach(q=>{if(Math.abs(q.y-.8)<Math.abs(b.y-.8))b=q});camZ=b.z;
+    qT(g,m,V(x,.34,z1),V(x,.34,zr),.03);                                                                  // larguero bajo de la torre al aro
+    [x-sd*.045,x+sd*.045].forEach(xx=>{const f=mk(CY(.055,.02,20),M.dark,g);f.position.set(xx,py,pz);f.rotation.z=Math.PI/2})});
+  qT(g,M.bar,V(-NZ.X-.07,py,pz),V(NZ.X+.07,py,pz),.021);                                                  // eje de las palancas
+  qT(g,m,V(-xh,.8,camZ),V(xh,.8,camZ),.026);                                                              // leva sobre su eje, entre los aros
+  const cam=mk(CY(.15,.035,40),m,g);cam.position.set(0,.8,camZ);cam.rotation.z=Math.PI/2;const cr=mk(CY(.156,.02,40),M.dark,g);cr.position.set(0,.8,camZ);cr.rotation.z=Math.PI/2;const ch=mk(CY(.05,.05,20),M.dark,g);ch.position.set(0,.8,camZ);ch.rotation.z=Math.PI/2;
+  qBX(g,M.dark,.03,.006,camZ-z1-.02,0,.94,(camZ+z1)/2);                                                   // banda de la leva a la torre
+  // base
+  qSQ(g,m,V(0,.04,-.36),V(0,.04,zr),.085);qSQ(g,m,V(-.3,.04,-.36),V(.3,.04,-.36),.08);qSQ(g,m,V(-.42,.04,zr),V(.42,.04,zr),.08);qSQ(g,m,V(-.38,.04,zc),V(.38,.04,zc),.08);
+  [[.3,-.36],[.42,zr],[.38,zc]].forEach(([x,z])=>[-1,1].forEach(sd=>qRub(g,sd*x,z)));
+  // asiento tipo silla con poste inclinado y palanca amarilla de ajuste
+  const sp=mk(RB(.36,.075,.34),MP,g);sp.position.set(0,st-.04,.02);sp.rotation.set(-.08,0,0);
+  qBX(g,m,.22,.025,.24,0,st-.088,.02).rotation.x=-.08;qSQ(g,m,V(0,.04,.17),V(0,st-.1,.05),.085);qSQ(g,m,V(0,st-.105,-.02),V(0,st-.105,.15),.07);
+  qT(g,MYEL,V(.04,st-.15,.0),V(.2,st-.19,-.1),.012);qJ(g,MYEL,V(.2,st-.19,-.1),.024);
+  // articulación en la punta de cada palanca y perillas amarillas de los rodillos (se colocan en cada cuadro)
+  NAUK.tip=[0,1].map(()=>{const c=mk(CY(.042,.085,20),M.dark,g);c.rotation.z=Math.PI/2;return c});
+  NAUK.knob=[0,1].map(()=>{const c=mk(CY(.03,.03,18),MYEL,g);c.rotation.z=Math.PI/2;return c})}
+function nauAfter2(p,gw){nauAfter(p,gw);
+  nau.rod.forEach((r,i)=>{const d=V(0,1,0).applyQuaternion(r.quaternion).multiplyScalar(r.scale.y/2);NAUK.tip[i].position.copy(r.position).sub(d)});
+  nau.pads.forEach((r,i)=>NAUK.knob[i].position.copy(r.position).add(V((i?1:-1)*.1,0,0)))}
+
+/* ---- Remo T con apoyo de pecho: marco en "A" · columna trasera que sube del pivote al cojín · dos patas que bajan al frente
+   con zapatas de hule (la palanca pasa entre ellas) · cuna amarilla de descanso · plataforma ranurada para los pies con
+   guarda negra · palanca con horquilla de soleras, agarres con tapas cromadas y cuerno cromado con brida ---- */
+EQ.mtbr=new THREE.Group();scene.add(EQ.mtbr);
+const TBQ={lev:null};
+function buildTB2(){buildTBMachine();tbSolve();
+  const g=EQ.mtbr;while(g.children.length)g.remove(g.children[0]);
+  const m=MSV,P=TBM.P,pc=TBPAD.c,pt=TBPAD.t,q=new THREE.Quaternion().setFromAxisAngle(V(1,0,0),-pt);
+  // cojín (misma cara y mismo borde alto que antes: ahí se ancla el cuerpo) con su placa y el cabezal del marco
+  const pad=mk(RB(.32,.09,.3),MP,g);pad.position.set(0,pc.y-.01,pc.z+.03);pad.quaternion.copy(q);
+  const pb=mk(B(.25,.028,.25),m,g);pb.position.set(0,pc.y-.075,pc.z);pb.quaternion.copy(q);
+  const U=V(0,pc.y-.125,pc.z-.035),hd=mk(B(.34,.1,.13),m,g);hd.position.copy(U);hd.quaternion.copy(q);
+  // columna trasera: del soporte del pivote al cabezal
+  const cb=V(0,P.y+.09,P.z+.085);qSQ(g,m,cb,U.clone().add(V(0,-.02,-.03)),.085);
+  // soporte del pivote con tapas amarillas
+  [-1,1].forEach(sd=>{qBX(g,m,.016,.2,.17,sd*.062,P.y+.02,P.z+.02);const c=mk(CY(.045,.014,24),MYEL,g);c.position.set(sd*.077,P.y,P.z);c.rotation.z=Math.PI/2});
+  qT(g,M.bar,V(-.08,P.y,P.z),V(.08,P.y,P.z),.016);qBX(g,m,.15,.05,.2,0,P.y+.12,P.z+.03);
+  // travesaño trasero en el piso con zapatas
+  qSQ(g,m,V(-.4,.035,P.z-.02),V(.4,.035,P.z-.02),.075);[-1,1].forEach(sd=>{qRub(g,sd*.4,P.z-.02,.1,.13);qSQ(g,m,V(sd*.062,.035,P.z-.02),V(sd*.062,P.y-.06,P.z+.0),.05)});
+  // patas delanteras: bajan del cabezal al frente abriéndose un poco, con un quiebre cerca del piso
+  const legAt=(sd,z)=>{const t=(z-U.z)/(.74-U.z);return V(sd*(.14+.17*t),U.y-.01+(.12-U.y)*t,z)};
+  [-1,1].forEach(sd=>{const a=V(sd*.14,U.y-.01,U.z+.03),kq=legAt(sd,.74),f=V(sd*.335,.02,.83);
+    qSQ(g,m,a,kq,.09);qSQ(g,m,kq.clone().add(V(0,.02,-.015)),f,.09);qBX(g,MRUB,.1,.035,.17,f.x,.0175,f.z+.01)});
+  // travesaño entre las patas con la cuna amarilla donde descansa la palanca
+  const c0=legAt(-1,.37),c1=legAt(1,.37);qSQ(g,m,c0,c1,.06);
+  [-1,1].forEach(sd=>qBX(g,MYEL,.016,.085,.05,sd*.042,c0.y+.06,.37));qBX(g,MYEL,.1,.016,.05,0,c0.y+.028,.37);
+  // plataforma de pies: dos mitades ranuradas (la palanca pasa por el hueco), misma superficie que usa el cálculo de las piernas
+  const fc=V(0,.2,-.55),tilt=.42,fq=new THREE.Quaternion().setFromAxisAngle(V(1,0,0),tilt);
+  [-1,1].forEach(sd=>{const pl=new THREE.Group();pl.position.set(sd*.2,fc.y,fc.z);pl.quaternion.copy(fq);g.add(pl);
+    qBX(pl,M.metal,.31,.022,.44,0,0,0);for(let i=-3;i<=3;i++)[-1,1].forEach(c=>qBX(pl,M.dark,.1,.004,.022,c*.07,.0125,i*.055+(c>0?.027:0)));
+    qBX(pl,M.metal,.31,.05,.016,0,.02,.22);                                                              // tope del talón
+    qSQ(g,m,V(sd*.2,.035,P.z-.02),V(sd*.2,fc.y+.05,P.z-.0),.05);qSQ(g,m,V(sd*.2,.05,fc.z+.14),V(sd*.2,fc.y-.07,fc.z+.12),.05);qBX(g,MRUB,.09,.03,.1,sd*.2,.015,fc.z+.14)});
+  const gm=MRUB.clone();gm.side=THREE.DoubleSide;const gd=mk(new THREE.CylinderGeometry(.17,.17,.72,20,1,true,Math.PI,Math.PI*.5),gm,g);gd.rotation.z=Math.PI/2;gd.position.set(0,.2,P.z+.03);   // guarda negra bajo la plataforma
+  // palanca (reposo local: barra hacia +z desde el pivote)
+  const L=TBQ.lev=new THREE.Group();L.position.copy(P);g.add(L);
+  const yz=TBM.yokeZ,h=TBM.yokeH,hz=TBM.hornZ;
+  mk(CY(.05,.1,24),m,L).rotation.z=Math.PI/2;qT(L,m,V(0,0,0),V(0,0,hz-.16),.03);
+  qT(L,M.metal,V(0,0,hz-.175),V(0,0,hz-.155),.06);qT(L,M.bar,V(0,0,hz-.16),V(0,0,hz+.17),.025);qT(L,M.dark,V(0,0,hz+.16),V(0,0,hz+.172),.027);
+  [0,1].forEach(i=>qPlate(L,.2,V(0,0,hz-.1+i*.05),V(0,0,1)));
+  qBX(L,m,.1,.07,.16,0,.005,yz);                                                                          // abrazadera de la horquilla
+  [-1,1].forEach(sd=>{const a=V(sd*.045,.02,yz),b=V(sd*.2,h,yz),d=b.clone().sub(a),s=mk(B(.02,d.length()+.04,.07),m,L);s.position.copy(a).addScaledVector(d,.5);s.rotation.z=Math.atan2(-d.x,d.y);
+    qT(L,M.bar,V(sd*.17,h,yz),V(sd*.21,h,yz),.03);qGrip(L,V(sd*.2,h,yz),V(sd*.41,h,yz));qT(L,M.bar,V(sd*.41,h,yz),V(sd*.425,h,yz),.03);   // agarre abierto con tapas cromadas
+    qGrip(L,V(sd*.05,h*.55,yz-.07),V(sd*.05,h*.55,yz+.07));qT(L,M.bar,V(sd*.05,h*.55,yz+.07),V(sd*.05,h*.55,yz+.082),.027)});          // agarre neutro
+  qT(L,m,V(0,0,yz),V(0,h*.55,yz),.02);qT(L,m,V(-.05,h*.55,yz),V(.05,h*.55,yz),.018);
+  ex.cam.t=V(0,.72,.05);
+}
+function tb2After(p,gw){const gg=gw('Right').add(gw('Left')).multiplyScalar(.5).sub(TBM.P);TBQ.lev.rotation.x=Math.atan2(TBM.yokeH,TBM.yokeZ)-Math.atan2(gg.y,gg.z)}
+
+Object.assign(EX,{
+  'jalon-nautilus':{...EX['jalon-nautilus'],place:placeNau2,after:nauAfter2},
+  'remo-t':{...EX['remo-t'],equip:'mtbr',show:['mtbr'],place:buildTB2,after:tb2After,cam:{t:V(0,.75,.1),yaw:-1.15,pitch:.22,dist:3.9}}
+});
+
+/* ===================== TORSO VIVO: columna en tres tramos y clavículas =====================
+   Antes el torso era un bloque: de la cadera a los hombros no se movía nada. Ahora:
+   · ESCÁPULAS, automático en todos los ejercicios: la clavícula acompaña al brazo (ritmo escapulohumeral). Si el brazo sube por encima
+     del hombro, el hombro se eleva; si el codo se va detrás del cuerpo (remos, fondo de un press), se retrae; si el brazo empuja o
+     alcanza al frente, se adelanta. Cada lado por separado, así que sirve igual en ejercicios alternos o a un brazo.
+       scap:(sd,p)=>V(afuera,arriba,adelante)  lo fija a mano (metros que se desplaza el hombro) · scap:false lo apaga
+   · COLUMNA, donde el ejercicio la declara:
+       spine:p=>({x,y,z,w,head,keepChest})  grados totales de flexión (+x adelante, -x extensión), giro (y) e inclinación (z), repartidos
+       entre lumbar, dorsal media y dorsal alta con los pesos w; head = cabeza respecto al pecho (+ mira arriba);
+       keepChest: el pecho se queda como estaba y la que bascula es la pelvis (true: hombros donde los puso el ejercicio · 'rest': donde
+       quedaban con el torso recto)
+   El marco del cuerpo (G) sigue siendo la pelvis. Las manos se calculan igual que antes y el brazo se resuelve desde donde quedó el
+   hombro de verdad: llegan a los mismos agarres y el mecanismo de las máquinas no cambia. Con torsoHands:true el recorrido de la mano
+   sigue al hombro (cables y peso libre, donde la barra va a donde va la mano). */
+const TORSO={Rtop:new THREE.Quaternion(),Rinv:new THREE.Quaternion(),save:null,dyn:null,flex:0,keep:null};
+const SPW=[.3,.35,.35],sstep=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+function torsoPost(){if(TORSO.save){SIDES.forEach(([s])=>{C.rest[s+'Arm']=TORSO.save[s]});TORSO.save=TORSO.dyn=null}}
+function torsoClav(s,sd,o){const b=C.bones[s+'Shoulder'],r=C.rest[s+'Shoulder'],A=(TORSO.save?TORSO.save[s]:C.rest[s+'Arm']).p;if(!b||!r)return;
+  const d0=A.clone().sub(r.p),L=d0.length();d0.normalize();const d1=o?d0.clone().multiplyScalar(L).add(V(sd*o.x,o.y,o.z)).normalize():d0;
+  const q=TORSO.Rtop.clone().multiply(new THREE.Quaternion().setFromUnitVectors(d0,d1)).multiply(r.q);curWorldQ(b.parent,tq);b.quaternion.copy(tq.invert().multiply(q))}
+function torsoPre(p){torsoPost();TORSO.Rtop.identity();TORSO.flex=0;TORSO.keep=null;
+  const sp=typeof ex.spine==='function'?ex.spine(p):null,w=(sp&&sp.w)||SPW;let ax=0,ay=0,az=0;
+  ['Spine','Spine1','Spine2'].forEach((n,i)=>{const b=C.bones[n];if(!b)return;
+    if(sp){ax+=(sp.x||0)*w[i];ay+=(sp.y||0)*w[i];az+=(sp.z||0)*w[i]}
+    const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(ax*D2R,ay*D2R,az*D2R,'YXZ'));if(i===2)TORSO.Rtop.copy(q);
+    q.multiply(C.rest[n].q);curWorldQ(b.parent,tq);b.quaternion.copy(tq.invert().multiply(q))});
+  TORSO.Rinv.copy(TORSO.Rtop).invert();if(sp){TORSO.flex=ax;TORSO.keep=sp.keepChest||null}
+  if(sp&&sp.head!=null&&!ex.headPitch)[['Neck',.4],['Head',1]].forEach(([n,f])=>{const b=C.bones[n];if(!b)return;
+    const q=TORSO.Rtop.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V(1,0,0),-sp.head*D2R*f)).multiply(C.rest[n].q);curWorldQ(b.parent,tq);b.quaternion.copy(tq.invert().multiply(q))});
+  SIDES.forEach(([s,sd])=>torsoClav(s,sd,typeof ex.scap==='function'?ex.scap(sd,p):null));
+  C.root.updateMatrixWorld(true);
+  TORSO.save={};TORSO.dyn={};SIDES.forEach(([s])=>{const r=C.rest[s+'Arm'];TORSO.save[s]=r;C.rest[s+'Arm']=TORSO.dyn[s]={p:toLocalP(C.bones[s+'Arm'].getWorldPosition(V())),q:r.q}})}
+// pelvis que bascula con el pecho fijo (elevaciones de piernas, hip thrust)
+function torsoBody(b){if(!TORSO.keep||!TORSO.flex||!TORSO.save)return b;
+  const q=b.q?b.q.clone():qX(b.rx),H=C.rest.Hips.p,mid=o=>V(0,o.Right.p.y,o.Right.p.z).sub(H),df=mid(TORSO.dyn),d0=TORSO.keep==='rest'?mid(TORSO.save):df;
+  const Sw=b.hips.clone().add(d0.applyQuaternion(q)),q2=q.clone().multiply(qX(-TORSO.flex));return{q:q2,hips:Sw.sub(df.applyQuaternion(q2))}}
+// mientras se calcula a dónde va la mano se usan los hombros en reposo (mismos agarres que antes), salvo torsoHands
+function torsoHand(on){if(!TORSO.save||ex.torsoHands)return;SIDES.forEach(([s])=>{C.rest[s+'Arm']=on?TORSO.save[s]:TORSO.dyn[s]})}
+// la clavícula acompaña al brazo
+function torsoScapAuto(s,sd,T,pole){if(ex.scap!==undefined||!TORSO.dyn)return;
+  const S=TORSO.dyn[s].p,u=ik(S,T,C.L.arm,C.L.fore,pole).E.sub(S).normalize().applyQuaternion(TORSO.Rinv);
+  const up=.045*sstep((u.y+.25)/1.25),fw=u.z<0?.045*u.z:.022*u.z;
+  torsoClav(s,sd,V(-.25*up-.3*Math.max(0,-fw),up,fw));C.bones[s+'Shoulder'].updateMatrixWorld(true);
+  TORSO.dyn[s].p.copy(toLocalP(C.bones[s+'Arm'].getWorldPosition(V())))}
+
+/* ---- primeros tres ejercicios con torso vivo ---- */
+Object.assign(EX['remo-t'],{torsoHands:true,                     // pecho apoyado: al jalar se juntan las escápulas y se arquea la dorsal alta; abajo los hombros se dejan ir hacia la barra
+  spine:p=>({x:-8*p,w:[0,.35,.65],head:3*p}),
+  scap:(sd,p)=>V(-.014*p+.006*(1-p),.006*p-.006*(1-p),-.045*p+.036*(1-p))});
+Object.assign(EX['jalon-pecho-abierto-barra'],{torsoHands:true,  // arriba los hombros suben con la barra (dorsal estirado); al bajar se deprimen, se retraen y el pecho sale al encuentro
+  spine:p=>({x:-10*p,w:[.2,.4,.4],head:-6*p}),
+  scap:(sd,p)=>V(-.012*(1-p)-.008*p,.045*(1-p)-.02*p,-.036*p)});
+Object.assign(EX['ab-coaster'],{torsoHands:true,                 // el abdomen enrolla la columna: la pelvis se mete y el pecho casi no cambia
+  spine:p=>({x:4+32*p,w:[.42,.34,.24],head:10*p}),
+  scap:(sd,p)=>V(0,.005,.012*p)});
+
+/* ---- columna en el resto de los ejercicios que la mueven ---- */
+const TSP=(ids,o)=>ids.forEach(k=>{if(EX[k])Object.assign(EX[k],o)});
+TSP(['jalon-pecho-cerrado-triangulo'],{torsoHands:true,spine:p=>({x:-9*p,w:[.2,.4,.4],head:-5*p})});                      // el pecho sale al encuentro del agarre
+TSP(['remo-abierto-polea-sentado'],{torsoHands:true,spine:p=>({x:6-12*p,head:-3+6*p})});                                    // adelante se deja estirar; al jalar se endereza y saca el pecho
+TSP(['face-pull-polea','face-pull-sentado','deltoides-posterior-polea'],{torsoHands:true,spine:p=>({x:-6*p,w:[.1,.35,.55],head:-3*p})});
+TSP(['apertura-posterior-maquina'],{spine:p=>({x:-5*p,w:[0,.35,.65],head:-2*p})});                                           // pecho contra el cojín: solo se arquea la dorsal alta
+TSP(['elevacion-piernas-maquina','elevacion-piernas-colgado'],{torsoHands:true,spine:p=>({x:3+17*p,w:[.5,.3,.2],keepChest:true})});
+TSP(['elevacion-piernas-colgado'],{scap:()=>V(0,.02,0)});                                                                 // colgado: hombro un poco arriba, sin doblar los codos   // arriba la pelvis se enrolla
+TSP(['hip-thrust'],{spine:p=>({x:9*p,w:[.5,.3,.2],keepChest:'rest',head:-10*p})});                                           // arriba: pelvis metida, costillas abajo y barbilla al pecho
+
+/* ===================== PRESS CON MANCUERNAS: recorrido corregido =====================
+   Antes la mano iba en línea recta de abajo a arriba y el codo "salía a donde cupiera": a media repetición los codos se abrían de más,
+   el antebrazo se inclinaba hacia adentro y la mancuerna se ladeaba. Ahora manda el brazo: el brazo (hombro→codo) gira en su plano y el
+   antebrazo va vertical, con la muñeca encima del codo en todo el recorrido; arriba las mancuernas quedan sobre los hombros, cerca pero sin chocar. */
+const DBP={};
+function dbPressHand(c){const at=(s,sd,p)=>{const S=C.rest[s+'Arm'].p,th=(c.t0+(c.t1-c.t0)*p)*D2R;
+    const u=c.out(sd).multiplyScalar(Math.cos(th)).addScaledVector(c.up,Math.sin(th)).normalize();          // dirección del brazo
+    const f=c.up.clone().addScaledVector(V(-sd,0,0),Math.tan(c.lean*D2R*p*p)).normalize();                  // antebrazo: vertical (lean = grados que se cierra arriba)
+    return{u,H:S.clone().addScaledVector(u,C.L.arm).addScaledVector(f,C.L.fore*.985)}};
+  return (s,sd,p)=>{const r=at(s,sd,p),gap=Math.max(0,.21-Math.abs(at(s,sd,1).H.x));                        // hombros angostos: arriba se abre lo justo para que las mancuernas no choquen
+    DBP[sd]=r.u;r.H.x+=sd*gap*p*p;return r.H}}
+{const a=60*D2R,e=EX['press-pecho-mancuernas'];      // acostado: codos a ~60° del torso, bajan un poco por debajo del hombro; arriba, mancuernas sobre los hombros
+  Object.assign(e,{torsoHands:true,hand:dbPressHand({t0:-28,t1:80,lean:0,up:V(0,0,1),out:sd=>V(sd*Math.sin(a),-Math.cos(a),0)}),
+    arm:{...e.arm,pole:sd=>DBP[sd]||V(sd,0,0),axis:sd=>V(1,-sd*Math.tan(20*D2R),0)},
+    scap:(sd,p)=>V(0,0,-.02*(1-p)+.012*p)})}             // abajo las escápulas se juntan contra el banco; arriba el hombro acompaña
+{const b=28*D2R,e=EX['press-hombro-mancuernas-banco']; // sentado: codos ~28° por delante del plano del cuerpo; abajo, mancuernas a la altura de las orejas
+  Object.assign(e,{torsoHands:true,hand:dbPressHand({t0:-20,t1:80,lean:2,up:V(0,1,0),out:sd=>V(sd*Math.cos(b),0,Math.sin(b))}),
+    arm:{...e.arm,pole:sd=>DBP[sd]||V(sd,0,0),axis:sd=>V(1,0,-sd*Math.tan(18*D2R))},
+    scap:(sd,p)=>V(-.01*p,.035*p,0)})}                  // al subir, el hombro sube y gira con el brazo
+
 function placeBody(){
   G.quaternion.setFromAxisAngle(V(1,0,0),(ex.body.rx||0)*D2R);
   const H=C.rest.Hips.p,mt=C.met;let hipsW;
@@ -2044,7 +2390,7 @@ function placeBody(){
   G.position.copy(hipsW).sub(h);G.updateMatrixWorld(true);Ginv.copy(G.quaternion).invert();
 }
 function placeEquipStatic(){
-  Object.values(EQ).forEach(g=>g.visible=false);(ex.show||[]).forEach(k=>{if(EQ[k])EQ[k].visible=true});if(ex.equip==='fly')placeFly();if(ex.equip==='dip')placeDip();if(ex.place)ex.place();
+  Object.values(EQ).forEach(g=>g.visible=false);(ex.show||[]).forEach(k=>{if(EQ[k])EQ[k].visible=true});if(ex.equip==='fly')placeFly();if(ex.equip==='dip')placeDip();if(ex.place)ex.place();upgradeTowers();
   if(ex.equip==='machine'){
     const loc=(x,y,z)=>G.localToWorld(V(x,y,z));const R=C.rest,hp=R.Hips.p,S=R.RightArm.p,hw=G.localToWorld(hp.clone()),st=ex.body.seat;
     seat.position.set(0,st-.045,hw.z+.02);
@@ -2078,25 +2424,28 @@ function progress(t){if(t<T_HOLD)return 1;t-=T_HOLD;if(t<T_DOWN)return 1-ease(t/
 function pose(p){
   if(ex.soloEquipo){if(ex.anim)ex.anim(p);return}
   const A=ex.arm,R=C.rest,grips={};
-  if(ex.bodyAt){const b=ex.bodyAt(p);if(b.q)setBodyQ(b.q,b.hips);else setBodyFrame(b.rx,b.hips)}
+  torsoPre(p);
+  if(ex.bodyAt){const b=torsoBody(ex.bodyAt(p));if(b.q)setBodyQ(b.q,b.hips);else setBodyFrame(b.rx,b.hips)}
   if(ex.leg)SIDES.forEach(([s,sd])=>{const lg=ex.leg(sd,p);poseLeg(s,lg.ankle,lg.pole,lg.fwd,lg.floor,lg.up)});
   SIDES.forEach(([s,sd])=>{
-    let T;if(ex.hand)T=ex.hand(s,sd,p);else{const tg=armTargets(s,sd);T=tg.Tb.clone().lerp(tg.Tt,p)}
+    torsoHand(1);let T;if(ex.hand)T=ex.hand(s,sd,p);else{const tg=armTargets(s,sd);T=tg.Tb.clone().lerp(tg.Tt,p)}
     if(ex.equip==='machine'&&MACH){const z=MACH.zb+(MACH.zt-MACH.zb)*p,y=MACH.Py+Math.sqrt(Math.max(0,MACH.R*MACH.R-(z-MACH.Pz)*(z-MACH.Pz)));
       T=toLocalP(V(sd*(MACH.xL-.09),y,z)).add(V(0,.03,-.085))}            // la mano sigue el arco del brazo de la máquina
-    T=guardPoint(T,ex.clear||.075);const Sh=C.rest[s+'Arm'].p,pl=safePole(Sh,T,C.L.arm,C.L.fore,A.pole(sd),sd);
+    T=guardPoint(T,ex.clear||.075);torsoHand(0);torsoScapAuto(s,sd,T,A.pole(sd));const Sh=C.rest[s+'Arm'].p,pl=safePole(Sh,T,C.L.arm,C.L.fore,A.pole(sd),sd);
     const r=poseArm(s,sd,T,pl,A.axis(sd),A.ext,A.curl,A.palm?A.palm(sd):null);
     grips[s]={c:r.W.clone().addScaledVector(r.hd,.085).addScaledVector(r.hp,.03),ax:r.across};
   });
   if(ex.headPitch){const hp=ex.headPitch*D2R;[['Neck',.4],['Head',1]].forEach(([n,f])=>{const b=C.bones[n];if(!b)return;
-    const q=new THREE.Quaternion().setFromAxisAngle(V(1,0,0),-hp*f).multiply(C.rest[n].q);curWorldQ(b.parent,tq);b.quaternion.copy(tq.invert().multiply(q))})}
+    const q=new THREE.Quaternion().setFromAxisAngle(V(1,0,0),-hp*f).multiply(C.rest[n].q).premultiply(TORSO.Rtop);curWorldQ(b.parent,tq);b.quaternion.copy(tq.invert().multiply(q))})}
   C.root.updateMatrixWorld(true);
   const gw=s=>G.localToWorld(grips[s].c.clone()),gax=s=>grips[s].ax.clone().applyQuaternion(G.quaternion);
   if(ex.equip==='barbell'){const a=gw('Right'),b=gw('Left');EQ.barbell.position.copy(a.add(b).multiplyScalar(.5))}
   if(ex.equip==='dumbbell'){EQ.dbR.position.copy(gw('Right'));alignY(EQ.dbR,gax('Right'));EQ.dbL.position.copy(gw('Left'));alignY(EQ.dbL,gax('Left'))}
   if(ex.equip==='machine'&&MACH){['Right','Left'].forEach((s,i)=>{const g=gw(s);levers[i].rotation.x=Math.atan2(g.z-MACH.Pz,g.y-MACH.Py)})}
   if(ex.after)ex.after(p,gw,grips);
+  liftTowers(p);
   paint(.88+.12*(1-p));
+  torsoPost();
 }
 
 /* ---------- cámara ---------- */
