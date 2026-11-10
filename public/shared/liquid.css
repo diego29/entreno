@@ -19,3 +19,7 @@
 .tabs .lens.squish{animation:lensSquish .5s cubic-bezier(.28,1.45,.5,1)}
 @keyframes lensSquish{0%{scale:1}30%{scale:1.10 .88}60%{scale:.97 1.04}100%{scale:1}}
 @media (prefers-reduced-motion:reduce){.tabs .lens{transition:opacity .2s}.tabs .lens.squish{animation:none}}
+/* Sin el recuadro azul que Android pone al tocar; en su lugar la pestaña se hunde un poco */
+.tabs,.tabs *{-webkit-tap-highlight-color:transparent}
+.tab:focus{outline:none}.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tab:active svg{transform:scale(.9);transition:transform .12s ease}
