@@ -54,6 +54,12 @@ jobs:
           bubblewrap build --skipPwaValidation --manifest ./twa-manifest.json
           ls -la *.apk
           cp app-release-signed.apk tempo.apk
+      - name: Revisar assetlinks del sitio (para que abra sin barra de dirección)
+        run: |
+          curl -sf https://entreno.d13g0manuel.workers.dev/.well-known/assetlinks.json | tee /tmp/al.json || echo "::warning::No se encontró assetlinks.json en el sitio"
+          FP=$(keytool -list -v -keystore android/tempo.keystore -storepass "$KS_PASS" | grep -m1 "SHA256:" | awk '{print $2}')
+          echo "Huella de esta firma: $FP"
+          grep -q "$FP" /tmp/al.json && echo "OK: la huella coincide" || echo "::warning::La huella no coincide con assetlinks.json"
       - uses: actions/upload-artifact@v4
         with: { name: tempo-apk, path: android/tempo.apk }
       - name: Publicar en Releases
