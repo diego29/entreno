@@ -111,7 +111,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.wrap{max-width:560px;margin:0 auto;padding:0 16px;padding-block:14px 110px}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px;padding-block:14px 116px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 14px}
 h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance;line-height:1}
 h1{font-size:34px;font-weight:800}
@@ -140,7 +140,7 @@ h3{font-size:19px;font-weight:700}
 .btn:disabled{opacity:.5;cursor:default}
 .icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
 .icon-btn svg{width:18px;height:18px}
-.fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.18);border-radius:99px;padding:13px 18px}
+.fab{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.18);border-radius:99px;padding:13px 18px}
 /* Días */
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-block:4px 14px}
 .day{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:8px 0 7px;display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -643,6 +643,7 @@ body.dragmode{user-select:none;-webkit-user-select:none}
 .vt-plus{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center}.vt-plus svg{width:22px;height:22px}
 .tab{white-space:nowrap;font-size:10px;letter-spacing:-.01em}
 </style>
+<link rel="stylesheet" href="../shared/liquid.css">
 
 </head><body>
 <div class="wrap" id="app"></div>
@@ -653,6 +654,7 @@ body.dragmode{user-select:none;-webkit-user-select:none}
   <button class="tab" data-tab="biblioteca" id="tab-biblioteca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h3M19 12h3M5 8v8M19 8v8M8 6v12M16 6v12M8 12h8"/></svg>Biblioteca</button>
   <button class="tab" data-tab="progreso" id="tab-progreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/></svg>Progreso</button>
 </div></nav>
+<script src="../shared/liquid.js" defer></script>
 <div id="player" class="player" hidden></div>
 <div id="layer"></div>
 
@@ -1456,7 +1458,7 @@ function settingsSheet(){const p=S.profile||{};
     ${notifCard()}
     ${themeCard()}
     <button class="btn block" id="pf-out">Cerrar sesión</button>
-    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 80</p></div>`,()=>{
+    <p class="muted" style="margin:0;text-align:center;font-size:12px">Versión 81</p></div>`,()=>{
     $("#pf-save").onclick=async()=>{if(await save("meta/profile",{name:$("#pf-name").value.trim(),phone:$("#pf-phone").value.trim()})){closeSheet();toast("Guardado")}};
     $("#pf-out").onclick=async()=>{await FB.auth.out();location.reload()}});
 }

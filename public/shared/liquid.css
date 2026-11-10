@@ -1,0 +1,21 @@
+/* Liquid glass: barra de menú flotante de vidrio, con una "gota" que se desliza a la sección activa. */
+:root{--glass-tint:rgba(255,255,255,.55);--glass-edge:rgba(255,255,255,.65);--glass-line:rgba(21,24,30,.08);--glass-sheen:rgba(255,255,255,.55);--glass-shadow:rgba(21,24,30,.28)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--glass-tint:rgba(30,34,42,.55);--glass-edge:rgba(255,255,255,.16);--glass-line:rgba(255,255,255,.08);--glass-sheen:rgba(255,255,255,.12);--glass-shadow:rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{--glass-tint:rgba(30,34,42,.55);--glass-edge:rgba(255,255,255,.16);--glass-line:rgba(255,255,255,.08);--glass-sheen:rgba(255,255,255,.12);--glass-shadow:rgba(0,0,0,.6)}
+.tabs{left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  max-width:560px;margin-inline:auto;padding:5px;border:0;border-radius:30px;overflow:hidden;
+  background:var(--surface);background:var(--glass-tint);
+  -webkit-backdrop-filter:blur(24px) saturate(190%) brightness(1.04);backdrop-filter:blur(24px) saturate(190%) brightness(1.04);
+  box-shadow:inset 0 1px 0 var(--glass-edge),inset 0 0 0 1px var(--glass-line),0 14px 34px -12px var(--glass-shadow),0 2px 8px -2px var(--glass-shadow)}
+.tabs::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,var(--glass-sheen),transparent 55%),radial-gradient(120% 80% at 50% 120%,rgba(255,255,255,.10),transparent 60%)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.tabs{background:var(--surface)}}
+.tabs div{position:relative}
+.tab{position:relative;z-index:1;border-radius:24px;transition:color .25s ease}
+.tabs .lens{position:absolute;left:0;top:0;bottom:0;width:0;z-index:0;border-radius:24px;pointer-events:none;opacity:0;
+  background:color-mix(in srgb,var(--accent) 15%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 1px color-mix(in srgb,var(--accent) 22%,transparent),0 4px 14px -6px color-mix(in srgb,var(--accent) 55%,transparent);
+  transition:transform .55s cubic-bezier(.28,1.45,.5,1),width .55s cubic-bezier(.28,1.45,.5,1),opacity .2s ease}
+.tabs .lens.squish{animation:lensSquish .5s cubic-bezier(.28,1.45,.5,1)}
+@keyframes lensSquish{0%{scale:1}30%{scale:1.10 .88}60%{scale:.97 1.04}100%{scale:1}}
+@media (prefers-reduced-motion:reduce){.tabs .lens{transition:opacity .2s}.tabs .lens.squish{animation:none}}

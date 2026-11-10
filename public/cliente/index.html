@@ -127,7 +127,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.wrap{max-width:560px;margin:0 auto;padding:0 16px;padding-block:12px 100px}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px;padding-block:12px 112px}
 h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0;line-height:1;text-wrap:balance}
 h1{font-size:34px;font-weight:800}h2{font-size:24px;font-weight:700}h3{font-size:19px;font-weight:700}
 .eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -388,7 +388,7 @@ html.bigtext body{zoom:1.16}
 html.bigtext{--muted:color-mix(in srgb,var(--ink) 78%,var(--bg))}
 html.bigtext .muted,html.bigtext small,html.bigtext .sub,html.bigtext .eyebrow{font-weight:600}
 html.bigtext .line,html.bigtext .card,html.bigtext .ex,html.bigtext .day,html.bigtext .inp{border-width:1.5px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:600;z-index:50;max-width:90vw;text-align:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(100px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:600;z-index:50;max-width:90vw;text-align:center}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
 /* Barra de series: cada óvalo se puede tocar; en biseries los ejercicios alternan dos tonos */
 .pbar .pb{flex:1;min-width:0;border:0;background:none;padding:8px 0;margin:-8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -424,6 +424,7 @@ html.bigtext .line,html.bigtext .card,html.bigtext .ex,html.bigtext .day,html.bi
 @keyframes phIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
 </style>
+<link rel="stylesheet" href="../shared/liquid.css">
 
 </head><body>
 <div class="wrap" id="app"></div>
@@ -432,6 +433,7 @@ html.bigtext .line,html.bigtext .card,html.bigtext .ex,html.bigtext .day,html.bi
   <button class="tab" data-tab="semana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Semana</button>
   <button class="tab" data-tab="progreso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 20h18M5 16l4-5 4 3 6-8"/></svg>Mi progreso</button>
 </div></nav>
+<script src="../shared/liquid.js" defer></script>
 <div id="player" class="player" hidden></div>
 <div id="layer"></div>
 
