@@ -51,8 +51,7 @@ jobs:
           BUBBLEWRAP_KEY_PASSWORD: ${{ env.KS_PASS }}
         run: |
           bubblewrap update --skipVersionUpgrade --manifest ./twa-manifest.json
-          echo "----- archivos del proyecto -----"; find . -path ./node_modules -prune -o -type f \( -name "*.java" -o -name "*.gradle" -o -name "AndroidManifest.xml" \) -print
-          for f in build.gradle app/build.gradle app/src/main/AndroidManifest.xml $(find app -name "LauncherActivity.java"); do echo "===== $f"; cat "$f"; done
+          if [ -f google-services.json ]; then python3 native/patch.py; else echo "::warning::Sin android/google-services.json: el APK sale sin avisos nativos (usa los de Chrome)."; fi
           bubblewrap build --skipPwaValidation --manifest ./twa-manifest.json
           ls -la *.apk
           cp app-release-signed.apk tempo.apk

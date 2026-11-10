@@ -92,14 +92,19 @@ async function start() {
   const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   const devId = () => { let d = ""; try { d = localStorage.getItem("entreno-dev") || ""; if (!d) { d = "d" + Math.random().toString(36).slice(2, 12); localStorage.setItem("entreno-dev", d); } } catch (e) { d = "d" + Math.random().toString(36).slice(2, 12); } return d; };
   let M = null;
+  // App de Android (APK): trae su propio token de avisos nativos en ?fcm=... Se guarda y se usa en lugar del de Chrome.
+  const NATIVE = (() => { try { const u = new URL(location.href), t = u.searchParams.get("fcm");
+      if (t) { localStorage.setItem("entreno-native-fcm", t); u.searchParams.delete("fcm"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); }
+      return localStorage.getItem("entreno-native-fcm") || ""; } catch (e) { return ""; } })();
   const token = async () => {
+    if (NATIVE) return NATIVE;
     M = M || await import(base + "firebase-messaging.js");
     if (!(await M.isSupported())) throw { code: "unsupported" };
     const reg = await navigator.serviceWorker.ready;
     return M.getToken(M.getMessaging(app), { vapidKey, serviceWorkerRegistration: reg });
   };
   const saveToken = async (owner, t) => {
-    await F.setDoc(F.doc(fs, `push/${owner}/devices/${devId()}`), { token: t, at: Date.now(), ua: navigator.userAgent.slice(0, 120) });
+    await F.setDoc(F.doc(fs, `push/${owner}/devices/${devId()}`), { token: t, at: Date.now(), ua: navigator.userAgent.slice(0, 120), ...(NATIVE && t === NATIVE ? { native: "android" } : {}) });
     try { localStorage.setItem("entreno-push-owner", owner); } catch (e) {}
   };
   const push = {
@@ -151,8 +156,8 @@ async function start() {
       try { reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, j) => setTimeout(() => j(new Error("tiempo agotado")), 6000))]); add(!!reg?.active, "Service worker", reg?.active ? "activo · " + new URL(reg.scope).pathname : "sin activar"); }
       catch (e) { add(false, "Service worker", String(e.message || e)); return out; }
       let t = "";
-      try { t = await token(); add(!!t, "Token de Firebase", t ? "…" + t.slice(-8) : "vacío"); } catch (e) { add(false, "Token de Firebase", (e?.code || "") + " " + (e?.message || "")); return out; }
-      try { const s = await reg.pushManager.getSubscription(); add(!!s, "Suscripción push", s ? new URL(s.endpoint).hostname : "no existe"); } catch (e) { add(false, "Suscripción push", String(e.message || e)); }
+      try { t = await token(); add(!!t, NATIVE ? "Token nativo (app de Android)" : "Token de Firebase", t ? "…" + t.slice(-8) : "vacío"); } catch (e) { add(false, "Token de Firebase", (e?.code || "") + " " + (e?.message || "")); return out; }
+      if (!NATIVE) try { const s = await reg.pushManager.getSubscription(); add(!!s, "Suscripción push", s ? new URL(s.endpoint).hostname : "no existe"); } catch (e) { add(false, "Suscripción push", String(e.message || e)); }
       try { await saveToken(owner, t); add(true, "Guardado en la base", `push/${owner}/devices/${devId()}`); } catch (e) { add(false, "Guardado en la base", (e?.code || "") + " " + (e?.message || "")); }
       try { await reg.showNotification("Prueba local ✓", { body: "Si ves esto, el teléfono sí muestra avisos de esta app.", tag: "diag-local", icon: new URL("icons/" + (owner === "trainer" ? "entrenador" : "cliente") + "-192.png", reg.scope).href }); add(true, "Aviso local", "enviado: debe aparecer arriba"); }
       catch (e) { add(false, "Aviso local", String(e.message || e)); }
